@@ -82,10 +82,10 @@ export const EarthDayNightShader = {
     varying vec3 vViewDir;
 
     void main() {
-      // Elevation bump relief perturbation
+      // Elevation bump relief perturbation (scaled for high-density 4K normal delta)
       float hCenter = texture2D(bumpMap, vUv).r;
-      float hEast = texture2D(bumpMap, vUv + vec2(0.0004, 0.0)).r;
-      float hNorth = texture2D(bumpMap, vUv + vec2(0.0, 0.0004)).r;
+      float hEast = texture2D(bumpMap, vUv + vec2(0.00030, 0.0)).r;
+      float hNorth = texture2D(bumpMap, vUv + vec2(0.0, 0.00045)).r;
       vec3 perturbedNormal = normalize(vNormal + vec3((hCenter - hEast) * 4.2, (hCenter - hNorth) * 4.2, 0.0));
 
       float sunDot = dot(perturbedNormal, vSunDir);
@@ -99,8 +99,10 @@ export const EarthDayNightShader = {
       vec4 nightColor = texture2D(nightTexture, vUv);
       vec4 specMask = texture2D(specularMap, vUv);
 
-      // Luminous incandescent night city lights on the dark hemisphere
-      vec3 nightCity = nightColor.rgb * 2.2 * nightFactor;
+      // Crisp pinpoint night city lights: power curve eliminates dark noise floor
+      // and concentrates luminescence into incandescent urban centers
+      vec3 cityLuma = pow(nightColor.rgb, vec3(1.30));
+      vec3 nightCity = cityLuma * 3.1 * nightFactor;
 
       // Realistic daylight with terrain slope diffuse shading
       float diffuse = clamp(sunDot * 0.85 + 0.15, 0.08, 1.0);

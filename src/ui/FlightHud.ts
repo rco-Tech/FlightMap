@@ -98,6 +98,10 @@ export class FlightHud {
               <span class="btn-icon" id="solar-btn-icon">☀️</span>
               <span id="solar-btn-label">SUN: UTC</span>
             </button>
+            <button class="hud-pill-btn" id="btn-map-tier" title="Toggle Map Resolution (4K HD / 8K Ultra)">
+              <span class="btn-icon">🌐</span>
+              <span id="tier-btn-label">MAP: ${this.globeScene.textureTier === 'full' ? '8K' : '4K'}</span>
+            </button>
             <button class="hud-pill-btn" id="btn-open-about" title="System Specifications & About">
               <span class="btn-icon">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
@@ -306,7 +310,14 @@ export class FlightHud {
     });
 
     document.getElementById('btn-open-about')?.addEventListener('click', () => {
-      this.modalDialogs.showAboutModal();
+      this.modalDialogs.showAboutModal(this.globeScene);
+    });
+
+    document.getElementById('btn-map-tier')?.addEventListener('click', () => {
+      const nextTier = this.globeScene.textureTier === 'mobile' ? 'full' : 'mobile';
+      this.globeScene.switchTextureTier(nextTier);
+      const label = document.getElementById('tier-btn-label');
+      if (label) label.textContent = `MAP: ${nextTier === 'full' ? '8K' : '4K'}`;
     });
 
     document.getElementById('btn-toggle-solar')?.addEventListener('click', () => {

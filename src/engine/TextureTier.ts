@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Texture Tier Manager
  * Selects the highest-resolution Earth texture set the current GPU/device can
  * comfortably handle. The "mobile" tier carries the same filenames as the full
@@ -54,5 +54,13 @@ export class TextureTierManager {
   public static basePath(tier: TextureTier): string {
     const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
     return tier === 'mobile' ? `${base}/assets/textures/mobile` : `${base}/assets/textures`;
+  }
+
+  public static getLabel(tier: TextureTier): string {
+    return tier === 'mobile' ? '4K HD' : '8K ULTRA';
+  }
+
+  public static getDescription(tier: TextureTier): string {
+    return tier === 'mobile' ? '4096x2048 High Definition' : '8192x4096 Ultra HD';
   }
 }

@@ -338,7 +338,7 @@ export class ModalDialogs {
   /**
    * Show System Specifications & About Dialog
    */
-  public showAboutModal(): void {
+  public showAboutModal(globeScene?: GlobeScene): void {
     const existing = document.getElementById('about-modal');
     if (existing) existing.remove();
 
@@ -367,6 +367,7 @@ export class ModalDialogs {
     }
 
     const currentSource = this.telemetryManager.getSource();
+    const activeTier = globeScene ? globeScene.textureTier : 'mobile';
 
     modal.innerHTML = `
       <div class="modal-card about-modal-card">
@@ -388,6 +389,28 @@ export class ModalDialogs {
           </div>
 
           <div class="about-section">
+            <div class="section-label">CARTOGRAPHIC TEXTURE RESOLUTION & FIDELITY</div>
+            <div class="tier-selector" style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+              <button class="preset-btn ${activeTier === 'mobile' ? 'active' : ''}" id="btn-select-tier-4k" style="padding: 10px; text-align: left;">
+                <span class="preset-flight" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>4K HIGH DEFINITION</span>
+                  <span style="font-size: 10px; color: #38bdf8;">${activeTier === 'mobile' ? '● ACTIVE' : ''}</span>
+                </span>
+                <span class="preset-route" style="font-size: 11px;">4096 &times; 2048 Sharp Textures</span>
+                <span class="preset-meta" style="font-size: 10px; opacity: 0.75;">Optimized for Mobile & OLED • Fast PWA Caching</span>
+              </button>
+              <button class="preset-btn ${activeTier === 'full' ? 'active' : ''}" id="btn-select-tier-8k" style="padding: 10px; text-align: left;">
+                <span class="preset-flight" style="display: flex; align-items: center; justify-content: space-between;">
+                  <span>8K ULTRA HD</span>
+                  <span style="font-size: 10px; color: #38bdf8;">${activeTier === 'full' ? '● ACTIVE' : ''}</span>
+                </span>
+                <span class="preset-route" style="font-size: 11px;">8192 &times; 4096 Master Resolution</span>
+                <span class="preset-meta" style="font-size: 10px; opacity: 0.75;">Extreme Detail • High-VRAM & Desktop Tier</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="about-section">
             <div class="section-label">SYSTEM ARCHITECTURE & CAPABILITIES</div>
             <div class="about-specs-grid">
               <div class="about-spec-item">
@@ -396,7 +419,7 @@ export class ModalDialogs {
               </div>
               <div class="about-spec-item">
                 <span class="spec-name">Cartographic Textures</span>
-                <span class="spec-value">4K NASA Blue Marble + Elevation Normal & Specular Map</span>
+                <span class="spec-value">${activeTier === 'full' ? '8K Ultra HD (8192x4096)' : '4K High Definition (4096x2048)'} Blue Marble</span>
               </div>
               <div class="about-spec-item">
                 <span class="spec-name">Geopolitical Vectors</span>
@@ -455,6 +478,15 @@ export class ModalDialogs {
     `;
 
     document.body.appendChild(modal);
+
+    document.getElementById('btn-select-tier-4k')?.addEventListener('click', () => {
+      globeScene?.switchTextureTier('mobile');
+      this.showAboutModal(globeScene);
+    });
+    document.getElementById('btn-select-tier-8k')?.addEventListener('click', () => {
+      globeScene?.switchTextureTier('full');
+      this.showAboutModal(globeScene);
+    });
 
     document.getElementById('btn-close-about')?.addEventListener('click', () => modal.remove());
     document.getElementById('btn-close-about-footer')?.addEventListener('click', () => modal.remove());

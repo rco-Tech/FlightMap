@@ -49,15 +49,16 @@ export class GlobeScene {
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.15;
 
-    // Pick the texture tier the device can handle (8K on desktop, 2K on phones).
+    // Pick the texture tier the device can handle (8K on desktop, 4K on phones).
     this.textureTier = TextureTierManager.resolve(this.renderer.capabilities.maxTextureSize);
     this.textureBase = TextureTierManager.basePath(this.textureTier);
 
-    // Cap the render resolution: phones get a lower ceiling to protect battery/thermals.
-    const maxPixelRatio = this.textureTier === 'mobile' ? 1.5 : 2;
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, maxPixelRatio));
+    // High-DPI support: On mobile screens (DPR 2.5 - 3.5), cap at 2.0 to ensure
+    // razor-sharp lines and textures without wasteful 3.0+ fragment overhead.
+    const maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2.0);
+    this.renderer.setPixelRatio(maxPixelRatio);
     console.log(
-      `[GlobeScene] Texture tier: ${this.textureTier} (maxTextureSize=${this.renderer.capabilities.maxTextureSize})`
+      `[GlobeScene] Texture tier: ${this.textureTier} (maxTextureSize=${this.renderer.capabilities.maxTextureSize}, pixelRatio=${maxPixelRatio})`
     );
 
     // Aircraft model (defaults to Private Business Jet)
@@ -363,15 +364,15 @@ export class GlobeScene {
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      const fontSize = 36;
+      const fontSize = 48;
       ctx.font = `bold ${fontSize}px "Segoe UI", -apple-system, Roboto, sans-serif`;
       const textMetrics = ctx.measureText(countryName);
       const textWidth = Math.ceil(textMetrics.width);
 
       // Symmetrical padding ensuring crisp readability and correct aspect ratio
-      const padX = 28;
-      const padY = 16;
-      const width = Math.max(120, textWidth + padX * 2);
+      const padX = 36;
+      const padY = 20;
+      const width = Math.max(140, textWidth + padX * 2);
       const height = fontSize + padY * 2;
 
       canvas.width = width;
@@ -386,12 +387,12 @@ export class GlobeScene {
       const cy = height / 2;
 
       // Dark drop shadow / outer outline for 100% legibility on any terrain (desert, snow, ocean, forest, night lights)
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 10;
       ctx.strokeStyle = 'rgba(2, 6, 23, 0.96)';
       ctx.strokeText(countryName, cx, cy);
 
       // Inner subtle contrast outline
-      ctx.lineWidth = 3.5;
+      ctx.lineWidth = 4.5;
       ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
       ctx.strokeText(countryName, cx, cy);
 
@@ -420,8 +421,8 @@ export class GlobeScene {
       const pos = AviationMath.latLonToVector3(p.LABEL_Y, p.LABEL_X, R);
       sprite.position.set(pos.x, pos.y, pos.z);
 
-      // Base world scale matched 1:1 to text aspect ratio (baseHeight = 0.72 units)
-      const baseHeight = 0.72;
+      // Base world scale matched 1:1 to text aspect ratio (baseHeight = 0.80 units)
+      const baseHeight = 0.80;
       const baseWidth = baseHeight * (width / height);
       sprite.scale.set(baseWidth, baseHeight, 1.0);
 
@@ -774,7 +775,45 @@ export class GlobeScene {
     this.renderer.render(this.scene, camera);
   }
 
+  public switchTextureTier(tier: TextureTier): void {
+    if (this.textureTier === tier && this.earthMesh) return;
+    this.textureTier = tier;
+    this.textureBase = TextureTierManager.basePath(tier);
+    TextureTierManager.setOverride(tier);
+
+    console.log(`[GlobeScene] Switching to texture tier: ${tier} (${this.textureBase})`);
+    const textureLoader = new THREE.TextureLoader();
+    const dayTex = textureLoader.load(`${this.textureBase}/earth_day.jpg`);
+    const nightTex = textureLoader.load(`${this.textureBase}/earth_night.jpg`);
+    const specTex = textureLoader.load(`${this.textureBase}/earth_specular.png`);
+    const bumpTex = textureLoader.load(`${this.textureBase}/earth_bump.jpg`);
+
+    const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
+    [dayTex, nightTex, specTex, bumpTex].forEach((tex) => {
+      tex.anisotropy = maxAnisotropy;
+      tex.minFilter = THREE.LinearMipmapLinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.generateMipmaps = true;
+    });
+
+    if (this.earthShaderMat) {
+      this.earthShaderMat.uniforms.dayTexture.value = dayTex;
+      this.earthShaderMat.uniforms.nightTexture.value = nightTex;
+      this.earthShaderMat.uniforms.specularMap.value = specTex;
+      this.earthShaderMat.uniforms.bumpMap.value = bumpTex;
+      this.earthShaderMat.needsUpdate = true;
+    }
+
+    if (this.cloudsMesh && this.cloudsMesh.material) {
+      const cloudTex = textureLoader.load(`${this.textureBase}/earth_clouds.jpg`);
+      (this.cloudsMesh.material as THREE.MeshStandardMaterial).map = cloudTex;
+      (this.cloudsMesh.material as THREE.MeshStandardMaterial).needsUpdate = true;
+    }
+  }
+
   public onResize(width: number, height: number): void {
+    const maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2.0);
+    this.renderer.setPixelRatio(maxPixelRatio);
     this.renderer.setSize(width, height);
   }
 }

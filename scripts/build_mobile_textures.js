@@ -12,12 +12,15 @@ const outDir = path.join(srcDir, 'mobile');
 
 // Downscaled "mobile" tier: identical filenames to the full tier so the runtime
 // can swap the base path transparently (see src/engine/TextureTier.ts).
+// High-fidelity 4K "mobile" tier: 4096x2048 crisp textures with high JPEG quality (mozjpeg)
+// and Lanczos3 anti-aliasing. Provides razor-sharp visuals on OLED/Retina mobile displays
+// without 8K VRAM overhead.
 const targets = [
-  { file: 'earth_day.jpg', width: 2048, height: 1024, format: 'jpeg', quality: 82 },
-  { file: 'earth_night.jpg', width: 2048, height: 1024, format: 'jpeg', quality: 82 },
-  { file: 'earth_clouds.jpg', width: 2048, height: 1024, format: 'jpeg', quality: 82 },
-  { file: 'earth_bump.jpg', width: 1024, height: 512, format: 'jpeg', quality: 80 },
-  { file: 'earth_specular.png', width: 1024, height: 512, format: 'png' }
+  { file: 'earth_day.jpg', width: 4096, height: 2048, format: 'jpeg', quality: 90 },
+  { file: 'earth_night.jpg', width: 4096, height: 2048, format: 'jpeg', quality: 92 },
+  { file: 'earth_clouds.jpg', width: 4096, height: 2048, format: 'jpeg', quality: 88 },
+  { file: 'earth_bump.jpg', width: 4096, height: 2048, format: 'jpeg', quality: 86 },
+  { file: 'earth_specular.png', width: 2048, height: 1024, format: 'png' }
 ];
 
 async function main() {
