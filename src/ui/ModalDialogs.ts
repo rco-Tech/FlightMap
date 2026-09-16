@@ -1,6 +1,9 @@
 import { AirportDatabase } from '../telemetry/AirportDatabase';
 import { FlightPlanManager } from '../telemetry/FlightPlan';
 import { TelemetryManager } from '../telemetry/TelemetryManager';
+import { GlobeScene } from '../engine/GlobeScene';
+import { SolarCalculator } from '../telemetry/SolarCalculator';
+import { APP_RELEASE_STRING } from '../version';
 
 export class ModalDialogs {
   private static instance: ModalDialogs;
@@ -380,7 +383,7 @@ export class ModalDialogs {
             <div class="about-logo-badge">rTech</div>
             <div class="about-hero-text">
               <h2>FlightMap 3D // In-Flight Entertainment (IFE)</h2>
-              <span class="about-version-tag">RELEASE v1.0.0 STABLE • 64-BIT WEBGL ENGINE</span>
+              <span class="about-version-tag">${APP_RELEASE_STRING}</span>
             </div>
           </div>
 
@@ -455,5 +458,160 @@ export class ModalDialogs {
 
     document.getElementById('btn-close-about')?.addEventListener('click', () => modal.remove());
     document.getElementById('btn-close-about-footer')?.addEventListener('click', () => modal.remove());
+  }
+
+  /**
+   * Show Day/Night & Astronomical Solar Terminator Dialog
+   */
+  public showSolarModal(globeScene: GlobeScene): void {
+    const existing = document.getElementById('solar-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'solar-modal';
+    modal.className = 'modal-backdrop';
+
+    const currentMode = globeScene.solarMode;
+    const now = new Date();
+    const utcHours = now.getUTCHours();
+    const utcMinutes = now.getUTCMinutes();
+    const currentMinuteOfDay = utcHours * 60 + utcMinutes;
+
+    const subsolar = SolarCalculator.getSubsolarPoint(now);
+    const solarInfo = globeScene.currentSolarInfo;
+
+    modal.innerHTML = `
+      <div class="modal-card solar-modal-card">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="icon">☀️</span>
+            <span>Day / Night Map & Solar Illumination Controls</span>
+          </div>
+          <button class="modal-close" id="btn-close-solar">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="about-hero" style="margin-bottom: 20px;">
+            <div class="about-logo-badge" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: white;">SUN</div>
+            <div class="about-hero-text">
+              <h2>Astronomical Day / Night Terminator Engine</h2>
+              <span class="about-version-tag">EARTH ILLUMINATION • TWILIGHT SCATTERING • CITY NIGHT LIGHTS</span>
+            </div>
+          </div>
+
+          <!-- Mode Selectors Grid -->
+          <div class="solar-modes-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 20px;">
+            <button class="solar-mode-btn ${currentMode === 'utc' ? 'active' : ''}" id="mode-btn-utc" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid ${currentMode === 'utc' ? '#00e5ff' : 'rgba(255, 255, 255, 0.1)'}; color: #f8fafc; cursor: pointer; text-align: left;">
+              <span style="font-weight: 700; font-size: 14px; color: ${currentMode === 'utc' ? '#00e5ff' : '#94a3b8'};">⏱️ REAL-TIME UTC</span>
+              <span style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">Matches current world time and coordinates. Shows true day and night worldwide.</span>
+            </button>
+
+            <button class="solar-mode-btn ${currentMode === 'local_noon' ? 'active' : ''}" id="mode-btn-noon" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid ${currentMode === 'local_noon' ? '#00e5ff' : 'rgba(255, 255, 255, 0.1)'}; color: #f8fafc; cursor: pointer; text-align: left;">
+              <span style="font-weight: 700; font-size: 14px; color: ${currentMode === 'local_noon' ? '#00e5ff' : '#94a3b8'};">☀️ LOCAL NOON (DAYLIGHT)</span>
+              <span style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">Positions Sun overhead the flight route for clear daytime visibility everywhere.</span>
+            </button>
+
+            <button class="solar-mode-btn ${currentMode === 'sim' ? 'active' : ''}" id="mode-btn-sim" style="display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 14px; border-radius: 10px; background: rgba(15, 23, 42, 0.6); border: 1px solid ${currentMode === 'sim' ? '#00e5ff' : 'rgba(255, 255, 255, 0.1)'}; color: #f8fafc; cursor: pointer; text-align: left;">
+              <span style="font-weight: 700; font-size: 14px; color: ${currentMode === 'sim' ? '#00e5ff' : '#94a3b8'};">⏩ SIMULATION SYNC</span>
+              <span style="font-size: 12px; color: #cbd5e1; line-height: 1.4;">Terminator advances with accelerated flight speed (10x, 20x).</span>
+            </button>
+          </div>
+
+          <!-- Manual 24-Hour Solar Scrubber -->
+          <div class="solar-scrubber-section" style="background: rgba(15, 23, 42, 0.5); padding: 16px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.08); margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <span style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: #94a3b8;">MANUAL 24-HOUR SOLAR TIME SCRUBBER</span>
+              <span id="slider-time-readout" style="font-family: monospace; font-size: 14px; font-weight: 700; color: #00e5ff;">${String(utcHours).padStart(2, '0')}:${String(utcMinutes).padStart(2, '0')} UTC</span>
+            </div>
+            <input type="range" id="solar-time-slider" min="0" max="1439" value="${currentMinuteOfDay}" style="width: 100%; cursor: pointer; accent-color: #00e5ff;" />
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: #64748b; margin-top: 4px;">
+              <span>00:00 (Midnight)</span>
+              <span>06:00 (Dawn)</span>
+              <span>12:00 (Noon)</span>
+              <span>18:00 (Dusk)</span>
+              <span>23:59</span>
+            </div>
+          </div>
+
+          <!-- Telemetry Specs Readout -->
+          <div class="about-section">
+            <div class="section-label">LIVE SOLAR TELEMETRY & ASTRONOMICAL STATUS</div>
+            <div class="about-specs-grid">
+              <div class="about-spec-item">
+                <span class="spec-name">Aircraft Solar Phase</span>
+                <span class="spec-value" id="modal-solar-phase">${solarInfo ? `${solarInfo.phaseIcon} ${solarInfo.phaseLabel}` : '☀️ DAYLIGHT'}</span>
+              </div>
+              <div class="about-spec-item">
+                <span class="spec-name">Sun Elevation Angle</span>
+                <span class="spec-value" id="modal-solar-elevation">${solarInfo ? `${solarInfo.elevationDeg > 0 ? '+' : ''}${solarInfo.elevationDeg}°` : '+45.0°'}</span>
+              </div>
+              <div class="about-spec-item">
+                <span class="spec-name">Subsolar Declination</span>
+                <span class="spec-value">${subsolar.declinationDeg > 0 ? '+' : ''}${subsolar.declinationDeg.toFixed(2)}° (${subsolar.declinationDeg > 0 ? 'Northern' : 'Southern'} Summer)</span>
+              </div>
+              <div class="about-spec-item">
+                <span class="spec-name">Subsolar Longitude</span>
+                <span class="spec-value">${subsolar.lon.toFixed(2)}° (${subsolar.lon >= 0 ? 'East' : 'West'})</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-primary" id="btn-close-solar-footer">Done</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const closeModal = () => modal.remove();
+    document.getElementById('btn-close-solar')?.addEventListener('click', closeModal);
+    document.getElementById('btn-close-solar-footer')?.addEventListener('click', closeModal);
+
+    const updateActiveButton = (activeId: string) => {
+      ['mode-btn-utc', 'mode-btn-noon', 'mode-btn-sim'].forEach((id) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+          btn.classList.toggle('active', id === activeId);
+          btn.style.borderColor = id === activeId ? '#00e5ff' : 'rgba(255, 255, 255, 0.1)';
+        }
+      });
+    };
+
+    document.getElementById('mode-btn-utc')?.addEventListener('click', () => {
+      globeScene.setSolarMode('utc');
+      updateActiveButton('mode-btn-utc');
+    });
+
+    document.getElementById('mode-btn-noon')?.addEventListener('click', () => {
+      globeScene.setSolarMode('local_noon');
+      updateActiveButton('mode-btn-noon');
+    });
+
+    document.getElementById('mode-btn-sim')?.addEventListener('click', () => {
+      globeScene.setSolarMode('sim');
+      updateActiveButton('mode-btn-sim');
+    });
+
+    // Time slider
+    const slider = document.getElementById('solar-time-slider') as HTMLInputElement;
+    const readout = document.getElementById('slider-time-readout');
+
+    if (slider && readout) {
+      slider.addEventListener('input', () => {
+        const minutes = parseInt(slider.value, 10);
+        const h = Math.floor(minutes / 60);
+        const m = minutes % 60;
+        readout.textContent = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} UTC`;
+
+        const scrubDate = new Date();
+        scrubDate.setUTCHours(h, m, 0, 0);
+
+        globeScene.setSolarMode('manual');
+        globeScene.setManualSolarDate(scrubDate);
+        updateActiveButton('');
+      });
+    }
   }
 }

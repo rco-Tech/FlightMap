@@ -559,6 +559,28 @@ html, body {
   color: #ffffff;
 }
 
+.solar-col {
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+
+.solar-col:hover .label {
+  color: var(--accent-cyan);
+}
+
+.solar-col:hover .solar-badge {
+  color: #38bdf8;
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+
+.solar-badge {
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* --- MODAL DIALOGS --- */
 .modal-backdrop {
   position: fixed;

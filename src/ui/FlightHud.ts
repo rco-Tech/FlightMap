@@ -94,6 +94,10 @@ export class FlightHud {
               <span class="pulse-dot" id="gps-status-dot"></span>
               <span id="gps-source-label">SIMULATION</span>
             </button>
+            <button class="hud-pill-btn" id="btn-toggle-solar" title="Day/Night Map & Solar Terminator Controls">
+              <span class="btn-icon" id="solar-btn-icon">☀️</span>
+              <span id="solar-btn-label">SUN: UTC</span>
+            </button>
             <button class="hud-pill-btn" id="btn-open-about" title="System Specifications & About">
               <span class="btn-icon">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
@@ -232,6 +236,10 @@ export class FlightHud {
               <span class="label" id="lbl-dest-clock">OTP (DEST)</span>
               <span class="clock-val" id="val-dest-clock">14:45</span>
             </div>
+            <div class="clock-col solar-col" id="col-solar-status" title="Local Solar Phase & Elevation Angle (Click to configure Day/Night map)" style="cursor: pointer;">
+              <span class="label">SOLAR / LOCAL</span>
+              <span class="clock-val solar-badge" id="val-solar-status">☀️ DAY</span>
+            </div>
           </div>
         </footer>
       </div>
@@ -299,6 +307,14 @@ export class FlightHud {
 
     document.getElementById('btn-open-about')?.addEventListener('click', () => {
       this.modalDialogs.showAboutModal();
+    });
+
+    document.getElementById('btn-toggle-solar')?.addEventListener('click', () => {
+      this.modalDialogs.showSolarModal(this.globeScene);
+    });
+
+    document.getElementById('col-solar-status')?.addEventListener('click', () => {
+      this.modalDialogs.showSolarModal(this.globeScene);
     });
 
     // Mode switcher (returns to the launch chooser)
@@ -442,6 +458,31 @@ export class FlightHud {
 
       setText('val-origin-clock', `${String(origDate.getUTCHours()).padStart(2, '0')}:${String(origDate.getUTCMinutes()).padStart(2, '0')}`);
       setText('val-dest-clock', `${String(destDate.getUTCHours()).padStart(2, '0')}:${String(destDate.getUTCMinutes()).padStart(2, '0')}`);
+    }
+
+    // Live Astronomical Solar Telemetry
+    const solarInfo = this.globeScene.currentSolarInfo;
+    const solarBtnLabel = document.getElementById('solar-btn-label');
+    const solarBtnIcon = document.getElementById('solar-btn-icon');
+
+    if (solarBtnLabel) {
+      if (this.globeScene.solarMode === 'utc') {
+        solarBtnLabel.textContent = 'SUN: UTC';
+      } else if (this.globeScene.solarMode === 'local_noon') {
+        solarBtnLabel.textContent = 'SUN: NOON';
+      } else if (this.globeScene.solarMode === 'sim') {
+        solarBtnLabel.textContent = 'SUN: SIM';
+      } else {
+        solarBtnLabel.textContent = 'SUN: MANUAL';
+      }
+    }
+
+    if (solarInfo) {
+      if (solarBtnIcon) {
+        solarBtnIcon.textContent = solarInfo.phaseIcon;
+      }
+      const elevSign = solarInfo.elevationDeg > 0 ? '+' : '';
+      setText('val-solar-status', `${solarInfo.phaseIcon} ${solarInfo.phase === 'day' ? 'DAY' : solarInfo.phase === 'night' ? 'NIGHT' : 'TWILIGHT'} (${elevSign}${solarInfo.elevationDeg}°)`);
     }
   }
 }

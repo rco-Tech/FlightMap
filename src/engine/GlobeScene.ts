@@ -1,4 +1,4 @@
-﻿import * as THREE from 'three';
+import * as THREE from 'three';
 import { AircraftModel, AircraftType } from './AircraftModel';
 import { AtmosphereShader, EarthDayNightShader } from './Shaders';
 import { AviationMath } from '../telemetry/AviationMath';
@@ -6,6 +6,7 @@ import { FlightPlanData } from '../telemetry/FlightPlan';
 import { TelemetryState } from '../telemetry/TelemetryManager';
 import { ThemeManager, ThemePalette } from '../ui/ThemeManager';
 import { TextureTierManager, TextureTier } from './TextureTier';
+import { SolarCalculator, LocalSolarInfo } from '../telemetry/SolarCalculator';
 
 export class GlobeScene {
   public scene: THREE.Scene;
@@ -13,6 +14,8 @@ export class GlobeScene {
   public earthMesh!: THREE.Mesh;
   public atmosphereMesh!: THREE.Mesh;
   public cloudsMesh!: THREE.Mesh;
+  public earthShaderMat!: THREE.ShaderMaterial;
+  public atmosShaderMat!: THREE.ShaderMaterial;
   public aircraft: AircraftModel;
   public flightPathGroup: THREE.Group;
   public bordersGroup: THREE.Group;
@@ -21,6 +24,12 @@ export class GlobeScene {
   public ambientLight!: THREE.AmbientLight;
   public textureTier!: TextureTier;
   public textureBase!: string;
+
+  // Solar & Day/Night state
+  public solarMode: 'utc' | 'sim' | 'local_noon' | 'manual' = 'utc';
+  public manualSolarDate: Date = new Date();
+  public currentSunPosition: THREE.Vector3 = new THREE.Vector3(250, 60, 150);
+  public currentSolarInfo: LocalSolarInfo | null = null;
 
   public static readonly GLOBE_RADIUS = 100;
   private currentFlightPlan: FlightPlanData | null = null;
@@ -68,12 +77,71 @@ export class GlobeScene {
     this.initEarth();
     this.initAtmosphere();
     this.initClouds();
+    this.updateSunPosition();
     this.loadCountryBorders();
     this.initThemeListener();
   }
 
   public setAircraftType(type: AircraftType): void {
     this.aircraft.setAircraftType(type);
+  }
+
+  public setSolarMode(mode: 'utc' | 'sim' | 'local_noon' | 'manual'): void {
+    this.solarMode = mode;
+    this.updateSunPosition();
+  }
+
+  public setManualSolarDate(date: Date): void {
+    this.manualSolarDate = date;
+    this.updateSunPosition();
+  }
+
+  public updateSunPosition(referenceDate?: Date): void {
+    const R = 350;
+    let targetDate = referenceDate || new Date();
+
+    if (this.solarMode === 'manual') {
+      targetDate = this.manualSolarDate;
+    }
+
+    let sunPos: { x: number; y: number; z: number };
+
+    if (this.solarMode === 'local_noon') {
+      // Position the sun directly overhead the aircraft for daytime visibility
+      const planePos = this.aircraft.group.position;
+      const planeRadius = planePos.length();
+      if (planeRadius > 0.1) {
+        const latLon = AviationMath.vector3ToLatLon(planePos.x, planePos.y, planePos.z, planeRadius);
+        sunPos = AviationMath.latLonToVector3(latLon.lat, latLon.lon, R);
+      } else {
+        sunPos = AviationMath.latLonToVector3(51.5, -0.1, R);
+      }
+    } else {
+      // Astronomical subsolar point computation
+      const sub = SolarCalculator.getSubsolarPoint(targetDate);
+      sunPos = AviationMath.latLonToVector3(sub.lat, sub.lon, R);
+    }
+
+    this.currentSunPosition.set(sunPos.x, sunPos.y, sunPos.z);
+    if (this.sunLight) {
+      this.sunLight.position.copy(this.currentSunPosition);
+    }
+
+    const sunDirNorm = this.currentSunPosition.clone().normalize();
+    if (this.earthShaderMat && this.earthShaderMat.uniforms.sunDirection) {
+      (this.earthShaderMat.uniforms.sunDirection.value as THREE.Vector3).copy(sunDirNorm);
+    }
+    if (this.atmosShaderMat && this.atmosShaderMat.uniforms.sunDirection) {
+      (this.atmosShaderMat.uniforms.sunDirection.value as THREE.Vector3).copy(sunDirNorm);
+    }
+
+    // Update local solar info at aircraft position
+    const planePos = this.aircraft.group.position;
+    const planeRadius = planePos.length();
+    if (planeRadius > 0.1) {
+      const planeLatLon = AviationMath.vector3ToLatLon(planePos.x, planePos.y, planePos.z, planeRadius);
+      this.currentSolarInfo = SolarCalculator.getLocalSolarInfo(planeLatLon.lat, planeLatLon.lon, targetDate);
+    }
   }
 
   private initThemeListener(): void {
@@ -98,8 +166,8 @@ export class GlobeScene {
     this.ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
     this.scene.add(this.ambientLight);
 
-    // Sun light positioned for daylight on Europe / Atlantic
-    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.8);
+    // Astronomical directional sun light
+    this.sunLight = new THREE.DirectionalLight(0xffffff, 1.85);
     this.sunLight.position.set(250, 60, 150);
     this.scene.add(this.sunLight);
   }
@@ -158,7 +226,7 @@ export class GlobeScene {
     });
 
     // Shader Material blending Day and Night textures
-    const earthMat = new THREE.ShaderMaterial({
+    this.earthShaderMat = new THREE.ShaderMaterial({
       uniforms: {
         dayTexture: { value: dayTex },
         nightTexture: { value: nightTex },
@@ -170,18 +238,19 @@ export class GlobeScene {
       fragmentShader: EarthDayNightShader.fragmentShader
     });
 
-    this.earthMesh = new THREE.Mesh(earthGeom, earthMat);
+    this.earthMesh = new THREE.Mesh(earthGeom, this.earthShaderMat);
     this.scene.add(this.earthMesh);
   }
 
   private initAtmosphere(): void {
     const shellSegments = this.textureTier === 'mobile' ? 40 : 64;
     const atmosGeom = new THREE.SphereGeometry(GlobeScene.GLOBE_RADIUS * 1.025, shellSegments, shellSegments);
-    const atmosMat = new THREE.ShaderMaterial({
+    this.atmosShaderMat = new THREE.ShaderMaterial({
       uniforms: {
         glowColor: { value: new THREE.Color(0x00a8ff) },
         coefficient: { value: 0.72 },
-        power: { value: 3.2 }
+        power: { value: 3.2 },
+        sunDirection: { value: this.sunLight.position.clone().normalize() }
       },
       vertexShader: AtmosphereShader.vertexShader,
       fragmentShader: AtmosphereShader.fragmentShader,
@@ -190,7 +259,7 @@ export class GlobeScene {
       transparent: true
     });
 
-    this.atmosphereMesh = new THREE.Mesh(atmosGeom, atmosMat);
+    this.atmosphereMesh = new THREE.Mesh(atmosGeom, this.atmosShaderMat);
     this.scene.add(this.atmosphereMesh);
   }
 
@@ -268,6 +337,16 @@ export class GlobeScene {
   }
 
   private createCountryLabels(features: any[]): void {
+    // Clear any previous country labels
+    while (this.countryLabelsGroup.children.length > 0) {
+      const child = this.countryLabelsGroup.children[0] as THREE.Sprite;
+      if (child.material) {
+        if (child.material.map) child.material.map.dispose();
+        child.material.dispose();
+      }
+      this.countryLabelsGroup.remove(child);
+    }
+
     // Elevate slightly above terrain surface (0.6% above R=100) to prevent any z-fighting
     const R = GlobeScene.GLOBE_RADIUS * 1.006;
 
@@ -276,52 +355,91 @@ export class GlobeScene {
       if (!p || !p.NAME || typeof p.LABEL_Y !== 'number' || typeof p.LABEL_X !== 'number') continue;
 
       const countryName = p.NAME.toUpperCase();
+      const labelRank = typeof p.LABELRANK === 'number' ? p.LABELRANK : (typeof p.scalerank === 'number' ? p.scalerank : 3);
+      const popRank = typeof p.POP_RANK === 'number' ? p.POP_RANK : 10;
+
+      // Offscreen canvas dynamically tailored to exact text width
       const canvas = document.createElement('canvas');
-      canvas.width = 512;
-      canvas.height = 128;
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      ctx.font = 'bold 38px "Segoe UI", -apple-system, Roboto, sans-serif';
+      const fontSize = 36;
+      ctx.font = `bold ${fontSize}px "Segoe UI", -apple-system, Roboto, sans-serif`;
+      const textMetrics = ctx.measureText(countryName);
+      const textWidth = Math.ceil(textMetrics.width);
+
+      // Symmetrical padding ensuring crisp readability and correct aspect ratio
+      const padX = 28;
+      const padY = 16;
+      const width = Math.max(120, textWidth + padX * 2);
+      const height = fontSize + padY * 2;
+
+      canvas.width = width;
+      canvas.height = height;
+
+      // Re-apply typography properties after canvas dimension allocation
+      ctx.font = `bold ${fontSize}px "Segoe UI", -apple-system, Roboto, sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
-      // Drop shadow / dark outline for 100% legibility on any terrain (desert, snow, ocean, forest)
-      ctx.lineWidth = 7;
-      ctx.strokeStyle = 'rgba(2, 6, 23, 0.95)';
-      ctx.strokeText(countryName, 256, 64);
+      const cx = width / 2;
+      const cy = height / 2;
 
+      // Dark drop shadow / outer outline for 100% legibility on any terrain (desert, snow, ocean, forest, night lights)
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = 'rgba(2, 6, 23, 0.96)';
+      ctx.strokeText(countryName, cx, cy);
+
+      // Inner subtle contrast outline
+      ctx.lineWidth = 3.5;
+      ctx.strokeStyle = 'rgba(15, 23, 42, 0.85)';
+      ctx.strokeText(countryName, cx, cy);
+
+      // Clean luminous text
       ctx.fillStyle = '#f8fafc';
-      ctx.fillText(countryName, 256, 64);
+      ctx.fillText(countryName, cx, cy);
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+      texture.magFilter = THREE.LinearFilter;
+      texture.generateMipmaps = true;
+
       const spriteMat = new THREE.SpriteMaterial({
         map: texture,
         transparent: true,
-        opacity: 0.85,
+        opacity: 0.0,
         depthTest: true,
         depthWrite: false
       });
 
       const sprite = new THREE.Sprite(spriteMat);
-      // Anchor sprite near the bottom so the text hovers above ground, NEVER penetrating terrain
+      // Anchor sprite near the bottom so text hovers naturally above ground
       sprite.center.set(0.5, 0.1);
 
       const pos = AviationMath.latLonToVector3(p.LABEL_Y, p.LABEL_X, R);
       sprite.position.set(pos.x, pos.y, pos.z);
-      sprite.scale.set(3.2, 0.8, 1.0);
+
+      // Base world scale matched 1:1 to text aspect ratio (baseHeight = 0.72 units)
+      const baseHeight = 0.72;
+      const baseWidth = baseHeight * (width / height);
+      sprite.scale.set(baseWidth, baseHeight, 1.0);
+
       sprite.userData = {
         name: countryName,
-        scaleRank: p.scalerank || 1,
+        labelRank,
+        popRank,
+        lat: p.LABEL_Y,
+        lon: p.LABEL_X,
         normal: new THREE.Vector3(pos.x, pos.y, pos.z).normalize(),
-        baseWidth: 3.2,
-        baseHeight: 0.8
+        baseWidth,
+        baseHeight,
+        aspectRatio: width / height
       };
 
       this.countryLabelsGroup.add(sprite);
     }
-    console.log(`[GlobeScene] Created ${this.countryLabelsGroup.children.length} 3D country labels.`);
+    console.log(`[GlobeScene] Created ${this.countryLabelsGroup.children.length} autozoomable 3D country labels.`);
   }
 
   private airportLabelSprites: THREE.Sprite[] = [];
@@ -499,64 +617,129 @@ export class GlobeScene {
       const newScale = THREE.MathUtils.lerp(currentScale, targetScale, 0.15);
       this.aircraft.group.scale.setScalar(newScale);
 
-      // Country labels & Airport beacons horizon culling & zoom scaling
+      // Update astronomical sun position and illumination dynamically
+      this.updateSunPosition();
+
+      // Country labels & Airport beacons horizon culling & autozoom scaling
       const camPos = camera.position;
-      const camNorm = camPos.clone().normalize();
       const totalCamDist = camPos.length();
-      const isLowAltitudeCam = totalCamDist < 125; // Close-up camera (Chase, Cockpit, Wing, or low zoom)
+      const isLowAltitudeCam = totalCamDist < 125; // Close-up camera (Chase, Cockpit, Wing, or close surface zoom)
+
+      // Screen-space anti-collision decimation for global orbit view
+      const screenOccupied: { x: number; y: number; rank: number }[] = [];
+      const canvasW = this.renderer.domElement.clientWidth || window.innerWidth;
+      const canvasH = this.renderer.domElement.clientHeight || window.innerHeight;
+      const tempVec = new THREE.Vector3();
 
       for (let i = 0; i < this.countryLabelsGroup.children.length; i++) {
         const sprite = this.countryLabelsGroup.children[i] as THREE.Sprite;
         const normal = sprite.userData.normal as THREE.Vector3;
         if (!normal) continue;
 
-        const distToCam = camPos.distanceTo(sprite.position);
+        const toCam = camPos.clone().sub(sprite.position);
+        const distToCam = toCam.length();
+        const toCamDir = toCam.normalize();
+        const glanceDot = normal.dot(toCamDir);
+
+        let targetOpacity = 0;
 
         if (isLowAltitudeCam) {
-          // In close-up views (Chase, Cockpit, Wing), horizon distance from FL380 is ~22 units.
-          // Labels farther than 30 units are over the Earth horizon and MUST be hidden so they don't stack on the horizon rim!
-          // Also hide labels directly underneath the plane (< 4.5 units) so they don't clip aircraft.
-          if (distToCam > 30 || distToCam < 4.5) {
-            sprite.visible = false;
-            continue;
-          }
+          // In close-up views (Chase, Cockpit, Wing), horizon distance from aircraft is ~22 units.
+          if (distToCam > 32 || distToCam < 4.5 || glanceDot < 0.12) {
+            targetOpacity = 0;
+          } else {
+            const distanceFade = Math.min(1.0, Math.max(0.0, (32 - distToCam) / 10));
+            targetOpacity = distanceFade * 0.90;
 
-          // Check glance angle between ground normal and line of sight to camera
-          const toCam = camPos.clone().sub(sprite.position).normalize();
-          const glanceDot = normal.dot(toCam);
-          if (glanceDot < 0.12) {
-            // Viewed edge-on over the ground curvature -> hide to prevent terrain clipping/stacking
-            sprite.visible = false;
-            continue;
+            const scale = Math.min(1.0, Math.max(0.48, distToCam / 22));
+            sprite.scale.set(
+              sprite.userData.baseWidth * scale,
+              sprite.userData.baseHeight * scale,
+              1
+            );
           }
-
-          sprite.visible = true;
-          // Clean opacity fade based on distance
-          const fade = Math.min(1.0, Math.max(0.0, (30 - distToCam) / 10));
-          sprite.material.opacity = fade * 0.92;
-          // Sleek constant size when near camera
-          const scale = Math.min(1.0, Math.max(0.55, distToCam / 22));
-          sprite.scale.set(sprite.userData.baseWidth * scale, sprite.userData.baseHeight * scale, 1);
         } else {
           // Orbit / Tactical Global View
-          const dot = normal.dot(camNorm);
-          if (dot < 0.22) {
-            sprite.visible = false;
+          // Check if facing camera (limb culling)
+          if (glanceDot < 0.16) {
+            targetOpacity = 0;
           } else {
-            const rank = sprite.userData.scaleRank || 1;
-            if (totalCamDist > 220 && rank > 1) {
-              sprite.visible = false;
-            } else if (totalCamDist > 160 && rank > 2) {
-              sprite.visible = false;
+            const rank = sprite.userData.labelRank as number;
+            let tierAlpha = 0;
+
+            // Multi-level cartographic LOD based on camera orbit distance
+            if (rank <= 2) {
+              // Top-tier global sovereign nations (USA, UK, France, Germany, Japan, etc.)
+              tierAlpha = 1.0;
+            } else if (rank === 3) {
+              // Tier 2: smooth fade-in between 245 and 210
+              tierAlpha = Math.min(1.0, Math.max(0.0, (245 - totalCamDist) / 35));
+            } else if (rank === 4) {
+              // Tier 3: smooth fade-in between 205 and 170
+              tierAlpha = Math.min(1.0, Math.max(0.0, (205 - totalCamDist) / 35));
+            } else if (rank === 5) {
+              // Tier 4: smooth fade-in between 165 and 138
+              tierAlpha = Math.min(1.0, Math.max(0.0, (165 - totalCamDist) / 27));
             } else {
-              sprite.visible = true;
-              const opacity = Math.min(0.9, (dot - 0.22) * 3.5);
-              sprite.material.opacity = opacity;
-              const scaleFactor = Math.min(1.2, Math.max(0.6, totalCamDist / 200));
-              sprite.scale.set(sprite.userData.baseWidth * scaleFactor, sprite.userData.baseHeight * scaleFactor, 1);
+              // Tier 5 (all small nations / microstates): smooth fade-in under 140
+              tierAlpha = Math.min(1.0, Math.max(0.0, (140 - totalCamDist) / 20));
+            }
+
+            if (tierAlpha <= 0.01) {
+              targetOpacity = 0;
+            } else {
+              // True distance-adaptive autozooming (Scale Invariance)
+              // Keeps the country names readable, sleek, and sharp across all zoom distances
+              const distRatio = distToCam / 95;
+              const autoZoomScale = Math.min(1.35, Math.max(0.40, Math.pow(distRatio, 0.72)));
+              sprite.scale.set(
+                sprite.userData.baseWidth * autoZoomScale,
+                sprite.userData.baseHeight * autoZoomScale,
+                1
+              );
+
+              // Glance fade near the horizon rim
+              const limbFade = Math.min(1.0, (glanceDot - 0.16) * 4.5);
+              targetOpacity = 0.88 * tierAlpha * limbFade;
+
+              // Screen-space anti-collision decimation when zoomed out
+              if (targetOpacity > 0.15 && totalCamDist > 140) {
+                tempVec.copy(sprite.position).project(camera);
+                if (tempVec.z < 1.0) {
+                  const screenX = ((tempVec.x + 1) * 0.5) * canvasW;
+                  const screenY = ((-tempVec.y + 1) * 0.5) * canvasH;
+
+                  let collides = false;
+                  const minPixelDist = totalCamDist > 200 ? 50 : 36;
+
+                  for (let c = 0; c < screenOccupied.length; c++) {
+                    const occ = screenOccupied[c];
+                    const dx = occ.x - screenX;
+                    const dy = occ.y - screenY;
+                    if (dx * dx + dy * dy < minPixelDist * minPixelDist) {
+                      if (occ.rank <= rank) {
+                        collides = true;
+                        break;
+                      }
+                    }
+                  }
+
+                  if (collides) {
+                    targetOpacity = 0;
+                  } else {
+                    screenOccupied.push({ x: screenX, y: screenY, rank });
+                  }
+                }
+              }
             }
           }
         }
+
+        // Smooth continuous opacity interpolation (zero popping!)
+        const currentOp = sprite.material.opacity;
+        const newOp = THREE.MathUtils.lerp(currentOp, targetOpacity, 0.2);
+        sprite.material.opacity = newOp;
+        sprite.visible = newOp > 0.02;
       }
 
       // Dynamic Airport Label scaling & close-up culling
@@ -569,8 +752,6 @@ export class GlobeScene {
           if (!pinPos) continue;
 
           const distToCam = camPos.distanceTo(pinPos);
-          // If in close-up mode (cockpit, wing, chase) and near the airport, or within 22 units of the pin,
-          // HIDE the label so it NEVER blocks the pilot or aircraft view!
           if ((isCloseUpCam && distToCam < 30) || distToCam < 14) {
             sprite.visible = false;
           } else {

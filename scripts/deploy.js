@@ -1,4 +1,4 @@
-﻿import { execSync } from 'child_process';
+import { execSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,10 +22,11 @@ console.log('[Deploy] Publishing to gh-pages branch...');
 execSync('git init', { cwd: distDir, stdio: 'inherit' });
 execSync('git config user.name "rco-Tech"', { cwd: distDir, stdio: 'inherit' });
 execSync('git config user.email "robert.oros@live.com"', { cwd: distDir, stdio: 'inherit' });
+const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8'));
 execSync('git remote add origin https://github.com/rco-Tech/FlightMap.git', { cwd: distDir, stdio: 'inherit' });
 execSync('git branch -M gh-pages', { cwd: distDir, stdio: 'inherit' });
 execSync('git add -A', { cwd: distDir, stdio: 'inherit' });
-execSync('git commit -m "deploy: update GitHub Pages build for offline PWA"', { cwd: distDir, stdio: 'inherit' });
+execSync(`git commit -m "deploy: release v${pkg.version} - autozoomable labels and day/night solar illumination"`, { cwd: distDir, stdio: 'inherit' });
 execSync('git push -u --force origin gh-pages', { cwd: distDir, stdio: 'inherit' });
 
 fs.rmSync(path.join(distDir, '.git'), { recursive: true, force: true });
