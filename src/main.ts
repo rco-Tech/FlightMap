@@ -94,16 +94,6 @@ async function bootstrap() {
   // 4. Handle Window and Canvas Container Resizing immediately
   const handleResize = () => {
     const container = document.getElementById('canvas-container') || canvas.parentElement || document.body;
-    const bottomConsole = document.querySelector('.hud-bottom-console') as HTMLElement;
-
-    // Dynamically update CSS custom property in portrait mobile so WebGL and CSS stay in pixel-perfect sync
-    if (bottomConsole && window.innerWidth <= 768 && window.matchMedia('(orientation: portrait)').matches) {
-      const bHeight = bottomConsole.getBoundingClientRect().height;
-      if (bHeight > 0) {
-        document.documentElement.style.setProperty('--mobile-bottom-console-height', `${Math.round(bHeight)}px`);
-      }
-    }
-
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
     canvas.width = width;
