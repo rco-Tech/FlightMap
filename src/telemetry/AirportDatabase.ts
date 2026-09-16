@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Airport Database Service
  * Loads and caches 7,900+ world commercial airports for offline search and flight planning.
  */
@@ -37,7 +37,8 @@ export class AirportDatabase {
 
     this.loadPromise = (async () => {
       try {
-        const response = await fetch('/assets/data/airports.json');
+        const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+        const response = await fetch(`${base}/assets/data/airports.json`);
         if (!response.ok) {
           throw new Error(`Failed to load airports.json: ${response.status}`);
         }
@@ -116,3 +117,5 @@ export class AirportDatabase {
     this.isLoaded = true;
   }
 }
+
+

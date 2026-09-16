@@ -1,4 +1,4 @@
-import { AviationMath } from '../telemetry/AviationMath';
+﻿import { AviationMath } from '../telemetry/AviationMath';
 import { FlightPlanData, FlightPlanManager } from '../telemetry/FlightPlan';
 import { TelemetryManager, TelemetryState } from '../telemetry/TelemetryManager';
 import { CameraManager, CameraMode } from '../engine/CameraManager';
@@ -50,7 +50,7 @@ export class FlightHud {
             <div class="progress-track-wrapper">
               <div class="progress-track">
                 <div class="progress-fill" id="hud-progress-fill" style="width: 35%;"></div>
-                <div class="progress-airplane" id="hud-progress-plane" style="left: 35%;">✈</div>
+                <div class="progress-airplane" id="hud-progress-plane" style="left: 35%;">âœˆ</div>
               </div>
               <div class="route-metrics">
                 <span class="metric" id="hud-distance-traveled">1,200 NM Traveled</span>
@@ -68,18 +68,18 @@ export class FlightHud {
           <div class="hud-top-actions">
             <!-- Theme Palette Toggle Button -->
             <button class="hud-pill-btn" id="btn-toggle-theme" title="Toggle Theme Palette">
-              <span class="btn-icon">🎨</span>
+              <span class="btn-icon">ðŸŽ¨</span>
               <span id="theme-btn-label">THEME</span>
             </button>
 
             <!-- Aircraft Type Switcher -->
             <button class="hud-pill-btn" id="btn-toggle-aircraft" title="Toggle Aircraft Type (Private Jet / Commercial Airliner)">
-              <span class="btn-icon">🛩️</span>
+              <span class="btn-icon">ðŸ›©ï¸</span>
               <span id="aircraft-btn-label">PRIVATE JET</span>
             </button>
 
             <button class="hud-pill-btn" id="btn-open-route" title="Change Route & Airport">
-              <span class="btn-icon">✈</span>
+              <span class="btn-icon">âœˆ</span>
               <span>Flight Plan</span>
             </button>
             <button class="hud-pill-btn" id="btn-open-gps" title="Connect Phone GPS or Hardware">
@@ -87,11 +87,11 @@ export class FlightHud {
               <span id="gps-source-label">SIMULATION</span>
             </button>
             <button class="hud-pill-btn" id="btn-open-about" title="System Specifications & About">
-              <span class="btn-icon">ℹ️</span>
+              <span class="btn-icon">â„¹ï¸</span>
               <span>ABOUT</span>
             </button>
-            <button class="hud-icon-btn" id="btn-switch-mode" title="Switch Mode (Map / GPS Relay)">🧭</button>
-            <button class="hud-icon-btn" id="btn-toggle-fs" title="Toggle Fullscreen">⛶</button>
+            <button class="hud-icon-btn" id="btn-switch-mode" title="Switch Mode (Map / GPS Relay)">ðŸ§­</button>
+            <button class="hud-icon-btn" id="btn-toggle-fs" title="Toggle Fullscreen">â›¶</button>
           </div>
         </header>
 
@@ -129,30 +129,30 @@ export class FlightHud {
           <div class="panel-header">CAMERA ANGLE</div>
           <div class="camera-buttons-group">
             <button class="cam-btn" data-cam="cockpit">
-              <span class="cam-icon">🪟</span>
+              <span class="cam-icon">ðŸªŸ</span>
               <span>Cockpit</span>
             </button>
             <button class="cam-btn" data-cam="wing">
-              <span class="cam-icon">🪽</span>
+              <span class="cam-icon">ðŸª½</span>
               <span>Wing Cam</span>
             </button>
             <button class="cam-btn" data-cam="chase">
-              <span class="cam-icon">🎥</span>
+              <span class="cam-icon">ðŸŽ¥</span>
               <span>Chase Cam</span>
             </button>
             <button class="cam-btn active" data-cam="orbit">
-              <span class="cam-icon">🌐</span>
+              <span class="cam-icon">ðŸŒ</span>
               <span>Globe Orbit</span>
             </button>
             <button class="cam-btn" data-cam="tactical">
-              <span class="cam-icon">🗺️</span>
+              <span class="cam-icon">ðŸ—ºï¸</span>
               <span>2D Tactical</span>
             </button>
           </div>
 
           <!-- Simulation Quick Controls -->
           <div class="sim-quick-bar" id="sim-quick-bar">
-            <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume">⏸</button>
+            <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume">â¸</button>
             <span class="sim-speed-tag" id="sim-speed-tag">10x</span>
           </div>
         </div>
@@ -172,24 +172,24 @@ export class FlightHud {
             <span class="label">OUTSIDE AIR TEMP (OAT)</span>
             <div class="value-row">
               <span class="big-val" id="val-oat-c">-52</span>
-              <span class="unit">°C</span>
-              <span class="sub-val" id="val-oat-f">-61°F</span>
+              <span class="unit">Â°C</span>
+              <span class="sub-val" id="val-oat-f">-61Â°F</span>
             </div>
           </div>
 
           <div class="telemetry-card">
             <span class="label">TRUE TRACK / HEADING</span>
             <div class="value-row">
-              <span class="big-val" id="val-heading">285°</span>
+              <span class="big-val" id="val-heading">285Â°</span>
               <span class="unit">TRUE</span>
-              <span class="sub-val" id="val-pitch-roll">+1.5° / 0.0°</span>
+              <span class="sub-val" id="val-pitch-roll">+1.5Â° / 0.0Â°</span>
             </div>
           </div>
 
           <div class="telemetry-card">
             <span class="label">COORDINATES</span>
             <div class="value-row">
-              <span class="coord-val" id="val-coordinates">51°28'12"N 000°27'42"W</span>
+              <span class="coord-val" id="val-coordinates">51Â°28'12"N 000Â°27'42"W</span>
             </div>
           </div>
 
@@ -277,7 +277,7 @@ export class FlightHud {
 
     // Mode switcher (returns to the launch chooser)
     document.getElementById('btn-switch-mode')?.addEventListener('click', () => {
-      window.location.href = '/start.html';
+      window.location.href = `${import.meta.env.BASE_URL}start.html`;
     });
 
     // Fullscreen toggle
@@ -293,7 +293,7 @@ export class FlightHud {
     document.getElementById('btn-sim-pause')?.addEventListener('click', () => {
       const isPaused = this.telemetryManager.toggleSimulationPause();
       const btn = document.getElementById('btn-sim-pause');
-      if (btn) btn.textContent = isPaused ? '▶' : '⏸';
+      if (btn) btn.textContent = isPaused ? 'â–¶' : 'â¸';
     });
   }
 
@@ -368,12 +368,12 @@ export class FlightHud {
     setText('val-speed-kmh', `${Math.round(state.groundSpeed * AviationMath.KNOTS_TO_KMH)} KM/H`);
 
     setText('val-oat-c', `${state.atmosphere.temperatureC}`);
-    setText('val-oat-f', `${state.atmosphere.temperatureF}°F`);
+    setText('val-oat-f', `${state.atmosphere.temperatureF}Â°F`);
 
-    setText('val-heading', `${Math.round(state.heading)}°`);
+    setText('val-heading', `${Math.round(state.heading)}Â°`);
     const pitchSign = state.pitch >= 0 ? '+' : '';
     const rollSign = state.roll >= 0 ? '+' : '';
-    setText('val-pitch-roll', `${pitchSign}${state.pitch.toFixed(1)}° / ${rollSign}${state.roll.toFixed(1)}°`);
+    setText('val-pitch-roll', `${pitchSign}${state.pitch.toFixed(1)}Â° / ${rollSign}${state.roll.toFixed(1)}Â°`);
 
     const latDms = AviationMath.formatDMS(state.lat, true);
     const lonDms = AviationMath.formatDMS(state.lon, false);
@@ -385,7 +385,7 @@ export class FlightHud {
     if (srcDot && srcLabel) {
       if (state.source === 'mobile_gps') {
         srcDot.className = 'pulse-dot active-green';
-        srcLabel.textContent = `PHONE GPS (±${state.gpsAccuracyMeters.toFixed(1)}m)`;
+        srcLabel.textContent = `PHONE GPS (Â±${state.gpsAccuracyMeters.toFixed(1)}m)`;
       } else if (state.source === 'browser_gps') {
         srcDot.className = 'pulse-dot active-cyan';
         srcLabel.textContent = 'LAPTOP GPS';
@@ -416,3 +416,4 @@ export class FlightHud {
     }
   }
 }
+

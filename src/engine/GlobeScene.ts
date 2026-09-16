@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+﻿import * as THREE from 'three';
 import { AircraftModel, AircraftType } from './AircraftModel';
 import { AtmosphereShader, EarthDayNightShader } from './Shaders';
 import { AviationMath } from '../telemetry/AviationMath';
@@ -211,7 +211,8 @@ export class GlobeScene {
 
   private async loadCountryBorders(): Promise<void> {
     try {
-      const response = await fetch('/assets/data/countries.geojson');
+      const base = (import.meta.env.BASE_URL || '/').replace(/\/$/, '');
+      const response = await fetch(`${base}/assets/data/countries.geojson`);
       if (!response.ok) return;
       const geojson = await response.json();
 
@@ -594,3 +595,5 @@ export class GlobeScene {
     this.renderer.setSize(width, height);
   }
 }
+
+

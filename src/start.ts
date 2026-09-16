@@ -1,4 +1,4 @@
-import './start.css';
+﻿import './start.css';
 import { AppMode, getMode, setMode, isStandaloneDisplay } from './mode';
 
 interface ModeOption {
@@ -12,17 +12,17 @@ interface ModeOption {
 const OPTIONS: ModeOption[] = [
   {
     id: 'map',
-    icon: '🌐',
+    icon: 'ðŸŒ',
     name: 'Moving Map',
     desc: 'Render the full 3D in-flight moving map on this device using its own satellite GNSS. No laptop required.',
-    href: '/index.html'
+    href: `${import.meta.env.BASE_URL}index.html`
   },
   {
     id: 'relay',
-    icon: '📡',
+    icon: 'ðŸ“¡',
     name: 'GPS Relay',
     desc: 'Stream this device\u2019s GNSS + gyro to a laptop running FlightMap as a live telemetry transmitter.',
-    href: '/mobile.html'
+    href: `${import.meta.env.BASE_URL}mobile.html`
   }
 ];
 
@@ -76,3 +76,4 @@ function render(): void {
 }
 
 render();
+
