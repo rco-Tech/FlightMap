@@ -6,58 +6,88 @@
 @media (pointer: coarse), (max-width: 900px) {
   html,
   body {
-    overscroll-behavior: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    width: 100dvw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    touch-action: none !important;
     -webkit-text-size-adjust: 100%;
-    touch-action: manipulation;
+    overscroll-behavior: none;
+    -webkit-user-select: none;
+    user-select: none;
   }
 
-  /* --- TOP ROUTE & ACTIONS BAR --- */
+  /* --- TOP BAR: 2 CLEAN ROWS ON MOBILE --- */
   .hud-top-bar {
-    padding: calc(env(safe-area-inset-top) + 6px) 8px 6px;
+    padding: calc(env(safe-area-inset-top) + 6px) 10px 4px;
     gap: 6px;
-    flex-wrap: nowrap;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    box-sizing: border-box;
+    pointer-events: none;
   }
 
   .flight-badge {
     display: none;
   }
 
+  /* Row 1: Full-Width Dedicated Route Tracker */
   .route-tracker {
+    width: 100%;
     margin: 0;
-    gap: 6px;
-    flex: 1 1 auto;
-    min-width: 130px;
-    max-width: none;
+    padding: 6px 12px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    backdrop-filter: blur(16px);
+    background: rgba(8, 14, 28, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.22);
+    border-radius: 14px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+    pointer-events: auto;
+    flex-shrink: 0;
   }
 
   .airport-origin,
   .airport-dest {
-    min-width: 38px;
+    min-width: 44px;
     text-align: center;
+    flex-shrink: 0;
   }
 
   .airport-origin .iata,
   .airport-dest .iata {
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 800;
+    letter-spacing: 0.5px;
   }
 
   .airport-origin .city,
   .airport-dest .city {
-    font-size: 8px;
-    opacity: 0.8;
+    font-size: 9px;
+    opacity: 0.85;
+    white-space: nowrap;
   }
 
   .progress-track-wrapper {
-    flex: 1;
-    min-width: 60px;
+    flex: 1 1 auto;
+    min-width: 70px;
+    padding: 0 4px;
   }
 
   .route-metrics {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0;
-    margin-top: 2px;
+    margin-top: 3px;
     display: flex;
     justify-content: space-between;
   }
@@ -66,22 +96,46 @@
     white-space: nowrap;
   }
 
+  /* Row 2: Dedicated Action Buttons Row */
   .hud-top-actions {
-    gap: 4px;
-    flex-shrink: 0;
+    width: 100%;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 2px 0;
+    pointer-events: auto;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    flex-shrink: 0;
   }
 
-  /* On mobile, turn all action buttons into sleek square/circle icon buttons */
+  .hud-top-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Sleek, comfortable buttons with crisp icons */
   .hud-pill-btn {
     padding: 0;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    backdrop-filter: blur(12px);
+    background: rgba(8, 14, 28, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    flex-shrink: 0;
+  }
+
+  .hud-pill-btn:active {
+    transform: scale(0.94);
+    background: rgba(0, 229, 255, 0.2);
+    border-color: rgba(0, 229, 255, 0.5);
   }
 
   .hud-pill-btn span:not(.btn-icon):not(#gps-status-dot) {
@@ -89,8 +143,11 @@
   }
 
   .hud-pill-btn .btn-icon {
-    font-size: 14px;
+    font-size: 15px;
     margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .pulse-dot {
@@ -98,13 +155,24 @@
   }
 
   .hud-icon-btn {
-    width: 32px;
-    height: 32px;
-    font-size: 13px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 14px;
     padding: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: 10px;
+    backdrop-filter: blur(12px);
+    background: rgba(8, 14, 28, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    flex-shrink: 0;
+  }
+
+  .hud-icon-btn:active {
+    transform: scale(0.94);
+    background: rgba(0, 229, 255, 0.2);
   }
 
   /* Hide fullscreen button on mobile since PWA / browser already manages screen */
@@ -112,10 +180,10 @@
     display: none;
   }
 
-  /* --- LEFT INSTRUMENTS TAPES (scaled down or hidden in portrait) --- */
+  /* --- LEFT INSTRUMENTS TAPES (scaled down and cleared below 2-row top bar) --- */
   .hud-left-instruments {
-    top: calc(env(safe-area-inset-top) + 60px);
-    left: 6px;
+    top: calc(env(safe-area-inset-top) + 106px);
+    left: 8px;
     gap: 6px;
     transform: scale(0.72);
     transform-origin: top left;

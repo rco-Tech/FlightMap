@@ -29,31 +29,56 @@
 }
 
 html, body {
-  width: 100%;
-  height: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
+  touch-action: none;
   background-color: var(--bg-deep);
   color: var(--text-main);
   font-family: var(--font-sans);
 }
 
 #canvas-container {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  z-index: 1;
+  touch-action: none;
+}
+
+#webgl-canvas {
   width: 100%;
   height: 100%;
-  z-index: 1;
+  display: block;
+  touch-action: none;
 }
 
 #hud-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  width: 100dvw;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   z-index: 10;
   pointer-events: none;
+  touch-action: none;
 }
 
 /* Allow interaction on HUD children */
@@ -62,12 +87,18 @@ html, body {
 }
 
 .hud-root {
-  position: relative;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 /* --- TOP IFE FLIGHT HEADER --- */

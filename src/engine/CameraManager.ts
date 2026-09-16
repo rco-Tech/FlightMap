@@ -116,9 +116,10 @@ export class CameraManager {
       }
     }, { passive: false });
 
-    // Touch controls for mobile/tablets
+    // Touch controls for mobile/tablets with native browser zoom prevention
     let initialTouchDist = 0;
     canvas.addEventListener('touchstart', (e) => {
+      if (e.cancelable) e.preventDefault();
       if (e.touches.length === 1) {
         this.isDragging = true;
         this.prevMouseX = e.touches[0].clientX;
@@ -130,9 +131,10 @@ export class CameraManager {
           e.touches[0].clientY - e.touches[1].clientY
         );
       }
-    });
+    }, { passive: false });
 
     canvas.addEventListener('touchmove', (e) => {
+      if (e.cancelable) e.preventDefault();
       if (e.touches.length === 1 && this.isDragging) {
         const deltaX = e.touches[0].clientX - this.prevMouseX;
         const deltaY = e.touches[0].clientY - this.prevMouseY;
@@ -154,7 +156,7 @@ export class CameraManager {
           this.orbitDistance = Math.max(115, Math.min(450, this.orbitDistance + diff * 0.25));
         }
       }
-    });
+    }, { passive: false });
 
     window.addEventListener('touchend', () => {
       this.isDragging = false;

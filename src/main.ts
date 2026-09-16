@@ -1,6 +1,5 @@
 import './index.css';
 import './hud-mobile.css';
-import './hud-mobile.css';
 import { GlobeScene } from './engine/GlobeScene';
 import { CameraManager } from './engine/CameraManager';
 import { TelemetryManager } from './telemetry/TelemetryManager';
@@ -8,6 +7,27 @@ import { FlightPlanManager } from './telemetry/FlightPlan';
 import { AirportDatabase } from './telemetry/AirportDatabase';
 import { FlightHud } from './ui/FlightHud';
 import { getMode } from './mode';
+
+// Prevent mobile browser page zoom/scroll shifts to ensure HUD instruments stay locked in place
+window.addEventListener('scroll', () => {
+  if (window.scrollX !== 0 || window.scrollY !== 0) {
+    window.scrollTo(0, 0);
+  }
+});
+
+if (window.visualViewport) {
+  const lockViewportScroll = () => {
+    if (window.scrollX !== 0 || window.scrollY !== 0) {
+      window.scrollTo(0, 0);
+    }
+  };
+  window.visualViewport.addEventListener('resize', lockViewportScroll);
+  window.visualViewport.addEventListener('scroll', lockViewportScroll);
+}
+
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+document.addEventListener('gesturechange', (e) => e.preventDefault());
+document.addEventListener('gestureend', (e) => e.preventDefault());
 
 /**
  * Keep the display awake while the map is on screen (essential on a flight
