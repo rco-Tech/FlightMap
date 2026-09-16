@@ -411,6 +411,11 @@ html, body {
   color: var(--accent-cyan);
 }
 
+/* --- DOCKED BOTTOM CONSOLE (DESKTOP TRANSPARENT / CONTENTS) --- */
+.hud-bottom-console {
+  display: contents;
+}
+
 /* --- RIGHT CAMERA VIEW PANEL --- */
 .hud-right-camera-panel {
   position: absolute;

@@ -62,7 +62,10 @@ export class CameraManager {
     // Dynamic camera distance based on flight route length (NM)
     // Short haul (500nm) -> ~175, Medium haul (1500nm) -> ~195, Long haul (5000nm+) -> ~240
     const distNM = plan.totalDistanceNM || 1500;
-    const targetDistance = Math.min(255, Math.max(175, 165 + (distNM / 6000) * 75));
+    let targetDistance = Math.min(255, Math.max(175, 165 + (distNM / 6000) * 75));
+    if (this.camera.aspect < 1.0) {
+      targetDistance *= Math.min(1.22, 1.08 / Math.max(0.55, this.camera.aspect));
+    }
     this.orbitDistance = targetDistance;
 
     // Target polar angle (phi) and azimuthal angle (theta)

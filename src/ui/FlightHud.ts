@@ -146,106 +146,109 @@ export class FlightHud {
           </div>
         </div>
 
-        <!-- RIGHT CAMERA VIEW CONTROLLER -->
-        <div class="hud-right-camera-panel">
-          <div class="panel-header">CAMERA ANGLE</div>
-          <div class="camera-buttons-group">
-            <button class="cam-btn" data-cam="cockpit">
-              <span class="cam-icon">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2h2v5h-2V6zm-6 0h4v5H5V6zm0 7h4v5H5v-5zm6 5v-5h2v5h-2zm8 0h-4v-5h4v5zm0-7h-4V6h4v5z"/></svg>
-              </span>
-              <span>Cockpit</span>
-            </button>
-            <button class="cam-btn" data-cam="wing">
-              <span class="cam-icon">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M21 3L3 10.53v2.13l8.03 2.68L13.71 21h2.13L21 3z"/></svg>
-              </span>
-              <span>Wing Cam</span>
-            </button>
-            <button class="cam-btn" data-cam="chase">
-              <span class="cam-icon">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
-              </span>
-              <span>Chase Cam</span>
-            </button>
-            <button class="cam-btn active" data-cam="orbit">
-              <span class="cam-icon">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
-              </span>
-              <span>Globe Orbit</span>
-            </button>
-            <button class="cam-btn" data-cam="tactical">
-              <span class="cam-icon">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
-              </span>
-              <span>2D Tactical</span>
-            </button>
+        <!-- DOCKED BOTTOM CONSOLE (CAMERA ROW 1 & TELEMETRY ROW 2 ON MOBILE) -->
+        <div class="hud-bottom-console">
+          <!-- CAMERA VIEW CONTROLLER (ROW 1 ON MOBILE) -->
+          <div class="hud-right-camera-panel">
+            <div class="panel-header">CAMERA ANGLE</div>
+            <div class="camera-buttons-group">
+              <button class="cam-btn" data-cam="cockpit" title="Cockpit View">
+                <span class="cam-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 2h2v5h-2V6zm-6 0h4v5H5V6zm0 7h4v5H5v-5zm6 5v-5h2v5h-2zm8 0h-4v-5h4v5zm0-7h-4V6h4v5z"/></svg>
+                </span>
+                <span>Cockpit</span>
+              </button>
+              <button class="cam-btn" data-cam="wing" title="Wing Cam">
+                <span class="cam-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M21 3L3 10.53v2.13l8.03 2.68L13.71 21h2.13L21 3z"/></svg>
+                </span>
+                <span>Wing Cam</span>
+              </button>
+              <button class="cam-btn" data-cam="chase" title="Chase Cam">
+                <span class="cam-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+                </span>
+                <span>Chase Cam</span>
+              </button>
+              <button class="cam-btn active" data-cam="orbit" title="Globe Orbit">
+                <span class="cam-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+                </span>
+                <span>Globe Orbit</span>
+              </button>
+              <button class="cam-btn" data-cam="tactical" title="2D Tactical">
+                <span class="cam-icon">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M20.5 3l-.16.03L15 5.1 9 3 3.36 4.9c-.21.07-.36.25-.36.48V20.5c0 .28.22.5.5.5l.16-.03L9 18.9l6 2.1 5.64-1.9c.21-.07.36-.25.36-.48V3.5c0-.28-.22-.5-.5-.5zM15 19l-6-2.11V5l6 2.11V19z"/></svg>
+                </span>
+                <span>2D Tactical</span>
+              </button>
+            </div>
+
+            <!-- Simulation Quick Controls -->
+            <div class="sim-quick-bar" id="sim-quick-bar">
+              <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume">
+                <svg id="sim-pause-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+              </button>
+              <span class="sim-speed-tag" id="sim-speed-tag">10x</span>
+            </div>
           </div>
 
-          <!-- Simulation Quick Controls -->
-          <div class="sim-quick-bar" id="sim-quick-bar">
-            <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume">
-              <svg id="sim-pause-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-            </button>
-            <span class="sim-speed-tag" id="sim-speed-tag">10x</span>
-          </div>
+          <!-- BOTTOM TELEMETRY STRIP (ROW 2 ON MOBILE) -->
+          <footer class="hud-bottom-bar">
+            <div class="telemetry-card">
+              <span class="label">GROUND SPEED</span>
+              <div class="value-row">
+                <span class="big-val" id="val-groundspeed">485</span>
+                <span class="unit">KTS</span>
+                <span class="sub-val" id="val-speed-kmh">898 KM/H</span>
+              </div>
+            </div>
+
+            <div class="telemetry-card">
+              <span class="label">OUTSIDE AIR TEMP (OAT)</span>
+              <div class="value-row">
+                <span class="big-val" id="val-oat-c">-52</span>
+                <span class="unit">&deg;C</span>
+                <span class="sub-val" id="val-oat-f">-61&deg;F</span>
+              </div>
+            </div>
+
+            <div class="telemetry-card">
+              <span class="label">TRUE TRACK / HEADING</span>
+              <div class="value-row">
+                <span class="big-val" id="val-heading">285&deg;</span>
+                <span class="unit">TRUE</span>
+                <span class="sub-val" id="val-pitch-roll">+1.5&deg; / 0.0&deg;</span>
+              </div>
+            </div>
+
+            <div class="telemetry-card">
+              <span class="label">COORDINATES</span>
+              <div class="value-row">
+                <span class="coord-val" id="val-coordinates">51°28'12"N 000°27'42"W</span>
+              </div>
+            </div>
+
+            <div class="telemetry-card clocks-card">
+              <div class="clock-col">
+                <span class="label" id="lbl-origin-clock">LHR (ORIGIN)</span>
+                <span class="clock-val" id="val-origin-clock">14:15</span>
+              </div>
+              <div class="clock-col">
+                <span class="label">UTC / IN-FLIGHT</span>
+                <span class="clock-val" id="val-utc-clock">13:15</span>
+              </div>
+              <div class="clock-col">
+                <span class="label" id="lbl-dest-clock">OTP (DEST)</span>
+                <span class="clock-val" id="val-dest-clock">14:45</span>
+              </div>
+              <div class="clock-col solar-col" id="col-solar-status" title="Local Solar Phase & Elevation Angle (Click to configure Day/Night map)" style="cursor: pointer;">
+                <span class="label">SOLAR / LOCAL</span>
+                <span class="clock-val solar-badge" id="val-solar-status">☀️ DAY</span>
+              </div>
+            </div>
+          </footer>
         </div>
-
-        <!-- BOTTOM TELEMETRY STRIP -->
-        <footer class="hud-bottom-bar">
-          <div class="telemetry-card">
-            <span class="label">GROUND SPEED</span>
-            <div class="value-row">
-              <span class="big-val" id="val-groundspeed">485</span>
-              <span class="unit">KTS</span>
-              <span class="sub-val" id="val-speed-kmh">898 KM/H</span>
-            </div>
-          </div>
-
-          <div class="telemetry-card">
-            <span class="label">OUTSIDE AIR TEMP (OAT)</span>
-            <div class="value-row">
-              <span class="big-val" id="val-oat-c">-52</span>
-              <span class="unit">&deg;C</span>
-              <span class="sub-val" id="val-oat-f">-61&deg;F</span>
-            </div>
-          </div>
-
-          <div class="telemetry-card">
-            <span class="label">TRUE TRACK / HEADING</span>
-            <div class="value-row">
-              <span class="big-val" id="val-heading">285&deg;</span>
-              <span class="unit">TRUE</span>
-              <span class="sub-val" id="val-pitch-roll">+1.5&deg; / 0.0&deg;</span>
-            </div>
-          </div>
-
-          <div class="telemetry-card">
-            <span class="label">COORDINATES</span>
-            <div class="value-row">
-              <span class="coord-val" id="val-coordinates">51°28'12"N 000°27'42"W</span>
-            </div>
-          </div>
-
-          <div class="telemetry-card clocks-card">
-            <div class="clock-col">
-              <span class="label" id="lbl-origin-clock">LHR (ORIGIN)</span>
-              <span class="clock-val" id="val-origin-clock">14:15</span>
-            </div>
-            <div class="clock-col">
-              <span class="label">UTC / IN-FLIGHT</span>
-              <span class="clock-val" id="val-utc-clock">13:15</span>
-            </div>
-            <div class="clock-col">
-              <span class="label" id="lbl-dest-clock">OTP (DEST)</span>
-              <span class="clock-val" id="val-dest-clock">14:45</span>
-            </div>
-            <div class="clock-col solar-col" id="col-solar-status" title="Local Solar Phase & Elevation Angle (Click to configure Day/Night map)" style="cursor: pointer;">
-              <span class="label">SOLAR / LOCAL</span>
-              <span class="clock-val solar-badge" id="val-solar-status">☀️ DAY</span>
-            </div>
-          </div>
-        </footer>
       </div>
     `;
   }
