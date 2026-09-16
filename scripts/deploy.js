@@ -26,7 +26,7 @@ const pkg = JSON.parse(fs.readFileSync(path.join(rootDir, 'package.json'), 'utf8
 execSync('git remote add origin https://github.com/rco-Tech/FlightMap.git', { cwd: distDir, stdio: 'inherit' });
 execSync('git branch -M gh-pages', { cwd: distDir, stdio: 'inherit' });
 execSync('git add -A', { cwd: distDir, stdio: 'inherit' });
-execSync(`git commit -m "deploy: release v${pkg.version} - autozoomable labels and day/night solar illumination"`, { cwd: distDir, stdio: 'inherit' });
+execSync(`git commit -m "deploy: release v${pkg.version}"`, { cwd: distDir, stdio: 'inherit' });
 execSync('git push -u --force origin gh-pages', { cwd: distDir, stdio: 'inherit' });
 
 fs.rmSync(path.join(distDir, '.git'), { recursive: true, force: true });
