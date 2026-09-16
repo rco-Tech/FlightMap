@@ -1,4 +1,4 @@
-﻿import './start.css';
+import './start.css';
 import { AppMode, getMode, setMode, isStandaloneDisplay } from './mode';
 
 interface ModeOption {
@@ -12,16 +12,16 @@ interface ModeOption {
 const OPTIONS: ModeOption[] = [
   {
     id: 'map',
-    icon: 'ðŸŒ',
+    icon: '🌐',
     name: 'Moving Map',
     desc: 'Render the full 3D in-flight moving map on this device using its own satellite GNSS. No laptop required.',
     href: `${import.meta.env.BASE_URL}index.html`
   },
   {
     id: 'relay',
-    icon: 'ðŸ“¡',
+    icon: '📡',
     name: 'GPS Relay',
-    desc: 'Stream this device\u2019s GNSS + gyro to a laptop running FlightMap as a live telemetry transmitter.',
+    desc: 'Stream this device’s GNSS + gyro to a laptop running FlightMap as a live telemetry transmitter.',
     href: `${import.meta.env.BASE_URL}mobile.html`
   }
 ];
@@ -38,14 +38,14 @@ function render(): void {
   const last = getMode();
   const installHint = isStandaloneDisplay()
     ? ''
-    : 'Tip: use your browser menu \u2192 <strong>Add to Home Screen</strong> to install FlightMap as a standalone app.';
+    : 'Tip: use your browser menu → <strong>Add to Home Screen</strong> to install FlightMap as a standalone app.';
 
   root.innerHTML = `
     <div class="start-root">
       <header class="start-header">
         <div class="start-eyebrow">rTech Systems</div>
         <h1 class="start-title">FLIGHTMAP</h1>
-        <p class="start-subtitle">Offline 3D In-Flight Moving Map \u2022 Select operating mode</p>
+        <p class="start-subtitle">Offline 3D In-Flight Moving Map • Select operating mode</p>
       </header>
 
       <div class="mode-grid" id="mode-grid"></div>
@@ -53,7 +53,7 @@ function render(): void {
       <footer class="start-footer">
         ${installHint}
         <div style="margin-top:10px;">
-          Earth imagery \u00a9 Solar System Scope, NASA-derived, CC BY 4.0.
+          Earth imagery © Solar System Scope, NASA-derived, CC BY 4.0.
         </div>
       </footer>
     </div>
@@ -76,4 +76,3 @@ function render(): void {
 }
 
 render();
-

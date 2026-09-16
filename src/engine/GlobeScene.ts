@@ -277,22 +277,22 @@ export class GlobeScene {
 
       const countryName = p.NAME.toUpperCase();
       const canvas = document.createElement('canvas');
-      canvas.width = 256;
-      canvas.height = 64;
+      canvas.width = 512;
+      canvas.height = 128;
       const ctx = canvas.getContext('2d');
       if (!ctx) continue;
 
-      ctx.font = 'bold 22px "Segoe UI", Roboto, sans-serif';
+      ctx.font = 'bold 38px "Segoe UI", -apple-system, Roboto, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
 
       // Drop shadow / dark outline for 100% legibility on any terrain (desert, snow, ocean, forest)
-      ctx.lineWidth = 4;
+      ctx.lineWidth = 7;
       ctx.strokeStyle = 'rgba(2, 6, 23, 0.95)';
-      ctx.strokeText(countryName, 128, 32);
+      ctx.strokeText(countryName, 256, 64);
 
       ctx.fillStyle = '#f8fafc';
-      ctx.fillText(countryName, 128, 32);
+      ctx.fillText(countryName, 256, 64);
 
       const texture = new THREE.CanvasTexture(canvas);
       texture.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
@@ -310,13 +310,13 @@ export class GlobeScene {
 
       const pos = AviationMath.latLonToVector3(p.LABEL_Y, p.LABEL_X, R);
       sprite.position.set(pos.x, pos.y, pos.z);
-      sprite.scale.set(2.6, 0.65, 1.0);
+      sprite.scale.set(3.2, 0.8, 1.0);
       sprite.userData = {
         name: countryName,
         scaleRank: p.scalerank || 1,
         normal: new THREE.Vector3(pos.x, pos.y, pos.z).normalize(),
-        baseWidth: 2.6,
-        baseHeight: 0.65
+        baseWidth: 3.2,
+        baseHeight: 0.8
       };
 
       this.countryLabelsGroup.add(sprite);
@@ -544,7 +544,9 @@ export class GlobeScene {
             sprite.visible = false;
           } else {
             const rank = sprite.userData.scaleRank || 1;
-            if (totalCamDist > 240 && rank > 2) {
+            if (totalCamDist > 220 && rank > 1) {
+              sprite.visible = false;
+            } else if (totalCamDist > 160 && rank > 2) {
               sprite.visible = false;
             } else {
               sprite.visible = true;

@@ -83,7 +83,11 @@ let httpsServer = null;
 
 // Serve built frontend assets
 const distDir = path.join(rootDir, 'dist');
+app.use('/FlightMap', express.static(distDir));
 app.use(express.static(distDir));
+app.use('/FlightMap/assets', express.static(path.join(distDir, 'assets')));
+app.get(['/start.html', '/FlightMap/start.html'], (req, res) => res.sendFile(path.join(distDir, 'start.html')));
+app.get(['/mobile.html', '/FlightMap/mobile.html'], (req, res) => res.sendFile(path.join(distDir, 'mobile.html')));
 app.use('/assets', express.static(path.join(rootDir, 'public', 'assets')));
 
 // API: Get mobile pairing URLs (recomputed live so it follows Wi-Fi <-> hotspot changes)
@@ -131,6 +135,9 @@ app.get('/mobile.html', (req, res) => {
 
 // Fallback SPA routing
 app.get('*', (req, res) => {
+  if (/\.(js|css|png|jpg|jpeg|svg|json|geojson|woff2|ico|webmanifest)$/i.test(req.path)) {
+    return res.status(404).send('Asset not found');
+  }
   res.sendFile(path.join(distDir, 'index.html'));
 });
 
