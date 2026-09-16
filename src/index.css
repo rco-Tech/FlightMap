@@ -869,6 +869,32 @@ html, body {
   cursor: pointer;
 }
 
+.modal-footer-attribution {
+  margin-right: auto;
+  align-self: center;
+  font-size: 10.5px;
+  color: #7f93ad;
+}
+
+/* Layer Dialog Grids */
+.layers-presets-grid,
+.layers-style-grid,
+.layers-relief-grid,
+.layers-res-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.layers-illum-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+
 /* GPS Modal Sources */
 .gps-sources-grid {
   display: grid;

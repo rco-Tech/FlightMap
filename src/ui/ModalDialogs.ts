@@ -292,7 +292,7 @@ export class ModalDialogs {
         </div>
 
         <div class="modal-footer">
-          <span style="margin-right:auto; align-self:center; font-size:10.5px; color:#7f93ad;">
+          <span class="modal-footer-attribution">
             Earth imagery &copy; Solar System Scope, NASA-derived, CC BY 4.0
           </span>
           <button class="btn-primary" id="btn-close-gps-footer">Done</button>
@@ -407,6 +407,7 @@ export class ModalDialogs {
                 <span class="preset-route" style="font-size: 11px;">8192 &times; 4096 Master Resolution</span>
                 <span class="preset-meta" style="font-size: 10px; opacity: 0.75;">Extreme Detail • High-VRAM & Desktop Tier</span>
               </button>
+            </div>
             <div style="margin-top: 10px;">
               <button class="preset-btn" id="btn-open-layers-from-about" style="width: 100%; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
                 <span style="display: flex; align-items: center; gap: 8px;">
@@ -539,7 +540,7 @@ export class ModalDialogs {
           <!-- PRESET QUICK MODES -->
           <div class="about-section">
             <div class="section-label">QUICK MAP VIEW PRESETS</div>
-            <div class="presets-grid" style="grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+            <div class="presets-grid layers-presets-grid">
               <button class="preset-btn ${isSat ? 'active' : ''}" id="preset-sat-relief">
                 <span class="preset-flight">🛰️ Satellite 3D</span>
                 <span class="preset-route">NASA Blue Marble</span>
@@ -569,7 +570,7 @@ export class ModalDialogs {
           <!-- MAP STYLE -->
           <div class="about-section">
             <div class="section-label">CARTOGRAPHIC STYLE</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+            <div class="layers-style-grid">
               <button class="preset-btn ${isSat ? 'active' : ''}" id="btn-style-sat">
                 <span class="preset-flight">🛰️ Satellite Imagery</span>
                 <span class="preset-meta">NASA Blue Marble Texture</span>
@@ -584,7 +585,7 @@ export class ModalDialogs {
           <!-- ILLUMINATION / DAY & NIGHT -->
           <div class="about-section">
             <div class="section-label">ILLUMINATION / DAY & NIGHT VERSION</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+            <div class="layers-illum-grid">
               <button class="preset-btn ${isDay ? 'active' : ''}" id="btn-illum-day">
                 <span class="preset-flight" style="font-size: 11px;">☀️ Day</span>
                 <span class="preset-meta" style="font-size: 9px;">Worldwide Daylight</span>
@@ -603,7 +604,7 @@ export class ModalDialogs {
           <!-- 3D ELEVATION RELIEF -->
           <div class="about-section">
             <div class="section-label">EARTH 3D ELEVATION RELIEF (BUMP)</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+            <div class="layers-relief-grid">
               <button class="preset-btn ${isRelief ? 'active' : ''}" id="btn-relief-on" ${isReg ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''}>
                 <span class="preset-flight">⛰️ 3D Relief ON</span>
                 <span class="preset-meta">Elevation Bump Shading</span>
@@ -618,7 +619,7 @@ export class ModalDialogs {
           <!-- TEXTURE RESOLUTION SWITCHER -->
           <div class="about-section">
             <div class="section-label">TEXTURE RESOLUTION TIER</div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+            <div class="layers-res-grid">
               <button class="preset-btn ${is4K ? 'active' : ''}" id="btn-layers-res-4k">
                 <span class="preset-flight">4K HIGH DEFINITION</span>
                 <span class="preset-meta">4096x2048 • Fast, Low VRAM</span>
