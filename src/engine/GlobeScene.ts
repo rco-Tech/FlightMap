@@ -25,6 +25,15 @@ export class GlobeScene {
   public textureTier!: TextureTier;
   public textureBase!: string;
 
+  // Map Style, Relief & Illumination Mode
+  public static readonly MAP_STYLE_STORAGE_KEY = 'flightmap_map_style';
+  public static readonly RELIEF_STORAGE_KEY = 'flightmap_relief_enabled';
+  public static readonly ILLUM_STORAGE_KEY = 'flightmap_illum_mode';
+
+  public mapStyle: 'satellite' | 'regular' = 'satellite';
+  public reliefEnabled: boolean = true;
+  public illuminationMode: 'auto' | 'day' | 'night' = 'auto';
+
   // Solar & Day/Night state
   public solarMode: 'utc' | 'sim' | 'local_noon' | 'manual' = 'utc';
   public manualSolarDate: Date = new Date();
@@ -53,12 +62,22 @@ export class GlobeScene {
     this.textureTier = TextureTierManager.resolve(this.renderer.capabilities.maxTextureSize);
     this.textureBase = TextureTierManager.basePath(this.textureTier);
 
+    // Restore saved map display preferences
+    try {
+      const savedStyle = localStorage.getItem(GlobeScene.MAP_STYLE_STORAGE_KEY);
+      if (savedStyle === 'satellite' || savedStyle === 'regular') this.mapStyle = savedStyle;
+      const savedRelief = localStorage.getItem(GlobeScene.RELIEF_STORAGE_KEY);
+      if (savedRelief !== null) this.reliefEnabled = savedRelief === '1';
+      const savedIllum = localStorage.getItem(GlobeScene.ILLUM_STORAGE_KEY);
+      if (savedIllum === 'auto' || savedIllum === 'day' || savedIllum === 'night') this.illuminationMode = savedIllum;
+    } catch {}
+
     // High-DPI support: On mobile screens (DPR 2.5 - 3.5), cap at 2.0 to ensure
     // razor-sharp lines and textures without wasteful 3.0+ fragment overhead.
     const maxPixelRatio = Math.min(window.devicePixelRatio || 1, 2.0);
     this.renderer.setPixelRatio(maxPixelRatio);
     console.log(
-      `[GlobeScene] Texture tier: ${this.textureTier} (maxTextureSize=${this.renderer.capabilities.maxTextureSize}, pixelRatio=${maxPixelRatio})`
+      `[GlobeScene] Texture tier: ${this.textureTier} (maxTextureSize=${this.renderer.capabilities.maxTextureSize}, pixelRatio=${maxPixelRatio}, mapStyle=${this.mapStyle})`
     );
 
     // Aircraft model (defaults to Private Business Jet)
@@ -233,7 +252,10 @@ export class GlobeScene {
         nightTexture: { value: nightTex },
         specularMap: { value: specTex },
         bumpMap: { value: bumpTex },
-        sunDirection: { value: this.sunLight.position.clone().normalize() }
+        sunDirection: { value: this.sunLight.position.clone().normalize() },
+        mapStyle: { value: this.mapStyle === 'regular' ? 1 : 0 },
+        reliefStrength: { value: (this.mapStyle === 'regular' || !this.reliefEnabled) ? 0.0 : 1.0 },
+        illuminationMode: { value: this.illuminationMode === 'day' ? 1 : (this.illuminationMode === 'night' ? 2 : 0) }
       },
       vertexShader: EarthDayNightShader.vertexShader,
       fragmentShader: EarthDayNightShader.fragmentShader
@@ -276,6 +298,9 @@ export class GlobeScene {
     });
 
     this.cloudsMesh = new THREE.Mesh(cloudGeom, cloudMat);
+    if (this.mapStyle === 'regular') {
+      this.cloudsMesh.visible = false;
+    }
     this.scene.add(this.cloudsMesh);
   }
 
@@ -809,6 +834,61 @@ export class GlobeScene {
       (this.cloudsMesh.material as THREE.MeshStandardMaterial).map = cloudTex;
       (this.cloudsMesh.material as THREE.MeshStandardMaterial).needsUpdate = true;
     }
+  }
+
+  public setMapStyle(style: 'satellite' | 'regular'): void {
+    this.mapStyle = style;
+    try { localStorage.setItem(GlobeScene.MAP_STYLE_STORAGE_KEY, style); } catch {}
+    if (this.earthShaderMat) {
+      this.earthShaderMat.uniforms.mapStyle.value = style === 'regular' ? 1 : 0;
+      if (style === 'regular') {
+        this.earthShaderMat.uniforms.reliefStrength.value = 0.0;
+      } else {
+        this.earthShaderMat.uniforms.reliefStrength.value = this.reliefEnabled ? 1.0 : 0.0;
+      }
+      this.earthShaderMat.needsUpdate = true;
+    }
+    if (this.cloudsMesh) {
+      this.cloudsMesh.visible = style === 'satellite';
+    }
+    if (this.bordersGroup.children.length > 0) {
+      const borderLines = this.bordersGroup.children[0] as THREE.LineSegments;
+      if (borderLines && borderLines.material) {
+        (borderLines.material as THREE.LineBasicMaterial).opacity = style === 'regular' ? 0.95 : 0.85;
+      }
+    }
+  }
+
+  public setReliefEnabled(enabled: boolean): void {
+    this.reliefEnabled = enabled;
+    try { localStorage.setItem(GlobeScene.RELIEF_STORAGE_KEY, enabled ? '1' : '0'); } catch {}
+    if (this.earthShaderMat) {
+      if (this.mapStyle === 'regular') {
+        this.earthShaderMat.uniforms.reliefStrength.value = 0.0;
+      } else {
+        this.earthShaderMat.uniforms.reliefStrength.value = enabled ? 1.0 : 0.0;
+      }
+      this.earthShaderMat.needsUpdate = true;
+    }
+  }
+
+  public setIlluminationMode(mode: 'auto' | 'day' | 'night'): void {
+    this.illuminationMode = mode;
+    try { localStorage.setItem(GlobeScene.ILLUM_STORAGE_KEY, mode); } catch {}
+    if (this.earthShaderMat) {
+      this.earthShaderMat.uniforms.illuminationMode.value = mode === 'day' ? 1 : (mode === 'night' ? 2 : 0);
+      this.earthShaderMat.needsUpdate = true;
+    }
+  }
+
+  public getMapModeLabel(): string {
+    const res = this.textureTier === 'full' ? '8K' : '4K';
+    if (this.mapStyle === 'regular') {
+      if (this.illuminationMode === 'day') return `REGULAR DAY (${res})`;
+      if (this.illuminationMode === 'night') return `REGULAR NIGHT (${res})`;
+      return `REGULAR AUTO (${res})`;
+    }
+    return `SATELLITE ${res}`;
   }
 
   public onResize(width: number, height: number): void {

@@ -98,9 +98,9 @@ export class FlightHud {
               <span class="btn-icon" id="solar-btn-icon">☀️</span>
               <span id="solar-btn-label">SUN: UTC</span>
             </button>
-            <button class="hud-pill-btn" id="btn-map-tier" title="Toggle Map Resolution (4K HD / 8K Ultra)">
+            <button class="hud-pill-btn" id="btn-map-tier" title="Map Layers, Styles (Satellite / Regular) & Resolution (4K/8K)">
               <span class="btn-icon">🌐</span>
-              <span id="tier-btn-label">MAP: ${this.globeScene.textureTier === 'full' ? '8K' : '4K'}</span>
+              <span id="tier-btn-label">MAP: ${this.globeScene.getMapModeLabel()}</span>
             </button>
             <button class="hud-pill-btn" id="btn-open-about" title="System Specifications & About">
               <span class="btn-icon">
@@ -314,10 +314,7 @@ export class FlightHud {
     });
 
     document.getElementById('btn-map-tier')?.addEventListener('click', () => {
-      const nextTier = this.globeScene.textureTier === 'mobile' ? 'full' : 'mobile';
-      this.globeScene.switchTextureTier(nextTier);
-      const label = document.getElementById('tier-btn-label');
-      if (label) label.textContent = `MAP: ${nextTier === 'full' ? '8K' : '4K'}`;
+      this.modalDialogs.showMapLayersModal(this.globeScene, () => this.updateMapTierButtonLabel());
     });
 
     document.getElementById('btn-toggle-solar')?.addEventListener('click', () => {
@@ -494,6 +491,13 @@ export class FlightHud {
       }
       const elevSign = solarInfo.elevationDeg > 0 ? '+' : '';
       setText('val-solar-status', `${solarInfo.phaseIcon} ${solarInfo.phase === 'day' ? 'DAY' : solarInfo.phase === 'night' ? 'NIGHT' : 'TWILIGHT'} (${elevSign}${solarInfo.elevationDeg}°)`);
+    }
+  }
+
+  public updateMapTierButtonLabel(): void {
+    const label = document.getElementById('tier-btn-label');
+    if (label) {
+      label.textContent = `MAP: ${this.globeScene.getMapModeLabel()}`;
     }
   }
 }

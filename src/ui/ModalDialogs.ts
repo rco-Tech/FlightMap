@@ -407,6 +407,14 @@ export class ModalDialogs {
                 <span class="preset-route" style="font-size: 11px;">8192 &times; 4096 Master Resolution</span>
                 <span class="preset-meta" style="font-size: 10px; opacity: 0.75;">Extreme Detail • High-VRAM & Desktop Tier</span>
               </button>
+            <div style="margin-top: 10px;">
+              <button class="preset-btn" id="btn-open-layers-from-about" style="width: 100%; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 8px;">
+                  <span>🗺️</span>
+                  <span style="font-weight: 600;">Configure Map Layers, Regular Map & Day/Night</span>
+                </span>
+                <span style="color: #38bdf8; font-size: 11px;">${globeScene ? globeScene.getMapModeLabel() : ''} &rarr;</span>
+              </button>
             </div>
           </div>
 
@@ -488,8 +496,224 @@ export class ModalDialogs {
       this.showAboutModal(globeScene);
     });
 
+    document.getElementById('btn-open-layers-from-about')?.addEventListener('click', () => {
+      modal.remove();
+      if (globeScene) this.showMapLayersModal(globeScene);
+    });
+
     document.getElementById('btn-close-about')?.addEventListener('click', () => modal.remove());
     document.getElementById('btn-close-about-footer')?.addEventListener('click', () => modal.remove());
+  }
+
+  /**
+   * Show Map Layers, Styles (Satellite / Regular) & Day/Night Switcher Dialog
+   */
+  public showMapLayersModal(globeScene: GlobeScene, onUpdate?: () => void): void {
+    const existing = document.getElementById('map-layers-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'map-layers-modal';
+    modal.className = 'modal-backdrop';
+
+    const isSat = globeScene.mapStyle === 'satellite';
+    const isReg = globeScene.mapStyle === 'regular';
+    const isDay = globeScene.illuminationMode === 'day';
+    const isNight = globeScene.illuminationMode === 'night';
+    const isAuto = globeScene.illuminationMode === 'auto';
+    const isRelief = globeScene.reliefEnabled && isSat;
+    const is4K = globeScene.textureTier === 'mobile';
+    const is8K = globeScene.textureTier === 'full';
+
+    modal.innerHTML = `
+      <div class="modal-card about-modal-card">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="icon">🗺️</span>
+            <span>Map Layers & Cartographic Display</span>
+          </div>
+          <button class="modal-close" id="btn-close-layers">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- PRESET QUICK MODES -->
+          <div class="about-section">
+            <div class="section-label">QUICK MAP VIEW PRESETS</div>
+            <div class="presets-grid" style="grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+              <button class="preset-btn ${isSat ? 'active' : ''}" id="preset-sat-relief">
+                <span class="preset-flight">🛰️ Satellite 3D</span>
+                <span class="preset-route">NASA Blue Marble</span>
+                <span class="preset-meta">Photorealistic • Clouds & Relief</span>
+              </button>
+
+              <button class="preset-btn ${isReg && isDay ? 'active' : ''}" id="preset-reg-day">
+                <span class="preset-flight">☀️ Regular (Day)</span>
+                <span class="preset-route">Clean Day Cartography</span>
+                <span class="preset-meta">No Relief • Crisp Geopolitical Nav</span>
+              </button>
+
+              <button class="preset-btn ${isReg && isNight ? 'active' : ''}" id="preset-reg-night">
+                <span class="preset-flight">🌙 Regular (Night)</span>
+                <span class="preset-route">Tactical Dark + Lights</span>
+                <span class="preset-meta">No Relief • Incandescent Clusters</span>
+              </button>
+
+              <button class="preset-btn ${isReg && isAuto ? 'active' : ''}" id="preset-reg-auto">
+                <span class="preset-flight">🌗 Regular (Auto)</span>
+                <span class="preset-route">Astronomical Terminator</span>
+                <span class="preset-meta">No Relief • Realtime UTC Cycle</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- MAP STYLE -->
+          <div class="about-section">
+            <div class="section-label">CARTOGRAPHIC STYLE</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+              <button class="preset-btn ${isSat ? 'active' : ''}" id="btn-style-sat">
+                <span class="preset-flight">🛰️ Satellite Imagery</span>
+                <span class="preset-meta">NASA Blue Marble Texture</span>
+              </button>
+              <button class="preset-btn ${isReg ? 'active' : ''}" id="btn-style-reg">
+                <span class="preset-flight">🗺️ Regular Cartographic</span>
+                <span class="preset-meta">Smooth Flat Geopolitical Map</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ILLUMINATION / DAY & NIGHT -->
+          <div class="about-section">
+            <div class="section-label">ILLUMINATION / DAY & NIGHT VERSION</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px;">
+              <button class="preset-btn ${isDay ? 'active' : ''}" id="btn-illum-day">
+                <span class="preset-flight" style="font-size: 11px;">☀️ Day</span>
+                <span class="preset-meta" style="font-size: 9px;">Worldwide Daylight</span>
+              </button>
+              <button class="preset-btn ${isNight ? 'active' : ''}" id="btn-illum-night">
+                <span class="preset-flight" style="font-size: 11px;">🌙 Night</span>
+                <span class="preset-meta" style="font-size: 9px;">City Lights On</span>
+              </button>
+              <button class="preset-btn ${isAuto ? 'active' : ''}" id="btn-illum-auto">
+                <span class="preset-flight" style="font-size: 11px;">🌗 Solar Auto</span>
+                <span class="preset-meta" style="font-size: 9px;">Astronomical UTC</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3D ELEVATION RELIEF -->
+          <div class="about-section">
+            <div class="section-label">EARTH 3D ELEVATION RELIEF (BUMP)</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+              <button class="preset-btn ${isRelief ? 'active' : ''}" id="btn-relief-on" ${isReg ? 'disabled style="opacity: 0.45; cursor: not-allowed;"' : ''}>
+                <span class="preset-flight">⛰️ 3D Relief ON</span>
+                <span class="preset-meta">Elevation Bump Shading</span>
+              </button>
+              <button class="preset-btn ${!isRelief ? 'active' : ''}" id="btn-relief-off">
+                <span class="preset-flight">🌐 No Relief (Flat Surface)</span>
+                <span class="preset-meta">Smooth Spherical Surface</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- TEXTURE RESOLUTION SWITCHER -->
+          <div class="about-section">
+            <div class="section-label">TEXTURE RESOLUTION TIER</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px;">
+              <button class="preset-btn ${is4K ? 'active' : ''}" id="btn-layers-res-4k">
+                <span class="preset-flight">4K HIGH DEFINITION</span>
+                <span class="preset-meta">4096x2048 • Fast, Low VRAM</span>
+              </button>
+              <button class="preset-btn ${is8K ? 'active' : ''}" id="btn-layers-res-8k">
+                <span class="preset-flight">8K ULTRA HD</span>
+                <span class="preset-meta">8192x4096 • Extreme Detail</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-primary" id="btn-close-layers-footer">Done</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const refreshModal = () => {
+      if (onUpdate) onUpdate();
+      this.showMapLayersModal(globeScene, onUpdate);
+    };
+
+    // Quick Presets
+    document.getElementById('preset-sat-relief')?.addEventListener('click', () => {
+      globeScene.setMapStyle('satellite');
+      globeScene.setReliefEnabled(true);
+      globeScene.setIlluminationMode('auto');
+      refreshModal();
+    });
+    document.getElementById('preset-reg-day')?.addEventListener('click', () => {
+      globeScene.setMapStyle('regular');
+      globeScene.setIlluminationMode('day');
+      refreshModal();
+    });
+    document.getElementById('preset-reg-night')?.addEventListener('click', () => {
+      globeScene.setMapStyle('regular');
+      globeScene.setIlluminationMode('night');
+      refreshModal();
+    });
+    document.getElementById('preset-reg-auto')?.addEventListener('click', () => {
+      globeScene.setMapStyle('regular');
+      globeScene.setIlluminationMode('auto');
+      refreshModal();
+    });
+
+    // Style
+    document.getElementById('btn-style-sat')?.addEventListener('click', () => {
+      globeScene.setMapStyle('satellite');
+      refreshModal();
+    });
+    document.getElementById('btn-style-reg')?.addEventListener('click', () => {
+      globeScene.setMapStyle('regular');
+      refreshModal();
+    });
+
+    // Illumination
+    document.getElementById('btn-illum-day')?.addEventListener('click', () => {
+      globeScene.setIlluminationMode('day');
+      refreshModal();
+    });
+    document.getElementById('btn-illum-night')?.addEventListener('click', () => {
+      globeScene.setIlluminationMode('night');
+      refreshModal();
+    });
+    document.getElementById('btn-illum-auto')?.addEventListener('click', () => {
+      globeScene.setIlluminationMode('auto');
+      refreshModal();
+    });
+
+    // Relief
+    document.getElementById('btn-relief-on')?.addEventListener('click', () => {
+      globeScene.setReliefEnabled(true);
+      refreshModal();
+    });
+    document.getElementById('btn-relief-off')?.addEventListener('click', () => {
+      globeScene.setReliefEnabled(false);
+      refreshModal();
+    });
+
+    // Resolution
+    document.getElementById('btn-layers-res-4k')?.addEventListener('click', () => {
+      globeScene.switchTextureTier('mobile');
+      refreshModal();
+    });
+    document.getElementById('btn-layers-res-8k')?.addEventListener('click', () => {
+      globeScene.switchTextureTier('full');
+      refreshModal();
+    });
+
+    // Close
+    document.getElementById('btn-close-layers')?.addEventListener('click', () => modal.remove());
+    document.getElementById('btn-close-layers-footer')?.addEventListener('click', () => modal.remove());
   }
 
   /**
