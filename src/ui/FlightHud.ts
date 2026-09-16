@@ -56,7 +56,11 @@ export class FlightHud {
               </div>
               <div class="route-metrics">
                 <span class="metric" id="hud-distance-traveled">0 NM</span>
-                <span class="metric center" id="hud-ete-time">ETE --:--</span>
+                <span class="metric center" id="hud-ete-time">
+                  <span class="ete-val" id="hud-ete-val">ETE --:--</span>
+                  <span class="time-sep">•</span>
+                  <span class="eta-val" id="hud-eta-val">ETA --:--</span>
+                </span>
                 <span class="metric right" id="hud-distance-remaining">1,135 NM</span>
               </div>
             </div>
@@ -69,7 +73,7 @@ export class FlightHud {
 
           <div class="hud-top-actions">
             <!-- Theme Palette Toggle Button -->
-            <button class="hud-pill-btn" id="btn-toggle-theme" title="Toggle Theme Palette">
+            <button class="hud-pill-btn btn-secondary-compact" id="btn-toggle-theme" title="Toggle Theme Palette">
               <span class="btn-icon">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61.42.53 1.13.79 1.8.64.67-.15 1.23-.67 1.23-1.37v-1.38c0-.83.67-1.5 1.5-1.5h1.5c2.76 0 5-2.24 5-5 0-3.31-2.69-6-6-6zm-4.5 9c-.83 0-1.5-.67-1.5-1.5S6.67 9 7.5 9s1.5.67 1.5 1.5S8.33 12 7.5 12zm3-4c-.83 0-1.5-.67-1.5-1.5S9.67 5 10.5 5s1.5.67 1.5 1.5S11.33 8 10.5 8zm3 0c-.83 0-1.5-.67-1.5-1.5S12.67 5 13.5 5s1.5.67 1.5 1.5S14.33 8 13.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S15.67 9 16.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>
               </span>
@@ -88,25 +92,22 @@ export class FlightHud {
               <span class="btn-icon">
                 <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M10.18 9L2.5 5.16v1.94l6.09 3.05-6.09 3.04v1.94L10.18 11.2V19l2 1 2-1v-7.8l7.68 3.84v-1.94L15.77 9.1l6.09-3.04V4.12L14.18 8V2.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5V9h-1z"/></svg>
               </span>
-              <span>Flight Plan</span>
+              <span>ROUTE</span>
             </button>
             <button class="hud-pill-btn" id="btn-open-gps" title="Connect Phone GPS or Hardware">
               <span class="pulse-dot" id="gps-status-dot"></span>
-              <span id="gps-source-label">SIMULATION</span>
+              <span id="gps-source-label">SIM 10x</span>
             </button>
-            <button class="hud-pill-btn" id="btn-toggle-solar" title="Day/Night Map & Solar Terminator Controls">
+            <button class="hud-pill-btn btn-secondary-compact" id="btn-toggle-solar" title="Day/Night Map & Solar Terminator Controls">
               <span class="btn-icon" id="solar-btn-icon">☀️</span>
-              <span id="solar-btn-label">SUN: UTC</span>
+              <span id="solar-btn-label">SUN</span>
             </button>
-            <button class="hud-pill-btn" id="btn-map-tier" title="Map Layers, Styles (Satellite / Regular) & Resolution (4K/8K)">
+            <button class="hud-pill-btn" id="btn-map-tier" title="Map Layers, Styles & Resolution">
               <span class="btn-icon">🌐</span>
-              <span id="tier-btn-label">MAP: ${this.globeScene.getMapModeLabel()}</span>
+              <span id="tier-btn-label">MAP (${this.globeScene.textureTier === 'full' ? '8K' : '4K'})</span>
             </button>
-            <button class="hud-pill-btn" id="btn-open-about" title="System Specifications & About">
-              <span class="btn-icon">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-              </span>
-              <span>ABOUT</span>
+            <button class="hud-icon-btn" id="btn-open-about" title="System Specifications & About">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
             </button>
             <button class="hud-icon-btn" id="btn-switch-mode" title="Switch Mode (Map / GPS Relay)">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5 9.99 9.99 6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1-1.1-.49-1.1-1.1.49-1.1 1.1-1.1z"/></svg>
@@ -417,7 +418,49 @@ export class FlightHud {
 
     // Compact distance readouts (avoids overlapping on mobile)
     setText('hud-distance-traveled', `${Math.round(state.distanceTraveledNM).toLocaleString()} NM`);
-    setText('hud-ete-time', `ETE ${AviationMath.formatDuration(state.eteSeconds)}`);
+    
+    // Journey ETE and ETA Calculation
+    const eteStr = AviationMath.formatDuration(state.eteSeconds);
+    let etaTimeStr = '--:--';
+    let destCode = '';
+
+    const plan = this.flightPlanManager.getActivePlan();
+    if (state.eteSeconds > 0) {
+      const etaDate = new Date(Date.now() + state.eteSeconds * 1000);
+      if (plan && plan.destination) {
+        destCode = plan.destination.iata || '';
+        if (plan.destination.tz) {
+          try {
+            etaTimeStr = new Intl.DateTimeFormat('en-GB', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: plan.destination.tz,
+              hour12: false
+            }).format(etaDate);
+          } catch {
+            const destOffsetHours = plan.destination.lon / 15;
+            const destDate = new Date(etaDate.getTime() + destOffsetHours * 3600 * 1000);
+            etaTimeStr = `${String(destDate.getUTCHours()).padStart(2, '0')}:${String(destDate.getUTCMinutes()).padStart(2, '0')}`;
+          }
+        } else {
+          const destOffsetHours = plan.destination.lon / 15;
+          const destDate = new Date(etaDate.getTime() + destOffsetHours * 3600 * 1000);
+          etaTimeStr = `${String(destDate.getUTCHours()).padStart(2, '0')}:${String(destDate.getUTCMinutes()).padStart(2, '0')}`;
+        }
+      } else {
+        etaTimeStr = `${String(etaDate.getUTCHours()).padStart(2, '0')}:${String(etaDate.getUTCMinutes()).padStart(2, '0')}`;
+      }
+    }
+
+    setText('hud-ete-val', `ETE ${eteStr}`);
+    setText('hud-eta-val', `ETA ${etaTimeStr}${destCode ? ' ' + destCode : ''}`);
+    
+    // Fallback if child spans are missing
+    const eteTimeElem = document.getElementById('hud-ete-time');
+    if (eteTimeElem && !document.getElementById('hud-ete-val')) {
+      eteTimeElem.textContent = `ETE ${eteStr} • ETA ${etaTimeStr}${destCode ? ' ' + destCode : ''}`;
+    }
+
     setText('hud-distance-remaining', `${Math.round(state.distanceRemainingNM).toLocaleString()} NM`);
 
     // Telemetry strip
@@ -442,16 +485,16 @@ export class FlightHud {
     if (srcDot && srcLabel) {
       if (state.source === 'mobile_gps') {
         srcDot.className = 'pulse-dot active-green';
-        srcLabel.textContent = `PHONE GPS (±${state.gpsAccuracyMeters.toFixed(1)}m)`;
+        srcLabel.textContent = `PHONE GPS`;
       } else if (state.source === 'browser_gps') {
         srcDot.className = 'pulse-dot active-cyan';
         srcLabel.textContent = 'LAPTOP GPS';
       } else if (state.source === 'serial_nmea') {
         srcDot.className = 'pulse-dot active-gold';
-        srcLabel.textContent = `USB GPS (${state.satellites} SATS)`;
+        srcLabel.textContent = `USB GPS (${state.satellites} S)`;
       } else {
         srcDot.className = 'pulse-dot active-blue';
-        srcLabel.textContent = `SIMULATION (${this.telemetryManager.getSimulationSpeed()}x)`;
+        srcLabel.textContent = `SIM ${this.telemetryManager.getSimulationSpeed()}x`;
       }
     }
 
@@ -459,7 +502,6 @@ export class FlightHud {
     const now = new Date();
     setText('val-utc-clock', `${String(now.getUTCHours()).padStart(2, '0')}:${String(now.getUTCMinutes()).padStart(2, '0')}`);
 
-    const plan = this.flightPlanManager.getActivePlan();
     if (plan) {
       const origOffsetHours = plan.origin.lon / 15;
       const destOffsetHours = plan.destination.lon / 15;
@@ -478,13 +520,13 @@ export class FlightHud {
 
     if (solarBtnLabel) {
       if (this.globeScene.solarMode === 'utc') {
-        solarBtnLabel.textContent = 'SUN: UTC';
+        solarBtnLabel.textContent = 'SUN';
       } else if (this.globeScene.solarMode === 'local_noon') {
-        solarBtnLabel.textContent = 'SUN: NOON';
+        solarBtnLabel.textContent = 'NOON';
       } else if (this.globeScene.solarMode === 'sim') {
-        solarBtnLabel.textContent = 'SUN: SIM';
+        solarBtnLabel.textContent = 'SUN SIM';
       } else {
-        solarBtnLabel.textContent = 'SUN: MANUAL';
+        solarBtnLabel.textContent = 'SUN';
       }
     }
 
@@ -500,7 +542,8 @@ export class FlightHud {
   public updateMapTierButtonLabel(): void {
     const label = document.getElementById('tier-btn-label');
     if (label) {
-      label.textContent = `MAP: ${this.globeScene.getMapModeLabel()}`;
+      const tier = this.globeScene.textureTier === 'full' ? '8K' : '4K';
+      label.textContent = `MAP (${tier})`;
     }
   }
 }
