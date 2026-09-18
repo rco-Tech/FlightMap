@@ -13,12 +13,14 @@ const BG_BOTTOM = '#02060d';
 
 /**
  * Emblem shared by all sizes: a cyan wireframe globe with a top-down jet.
+ * Scaled up to ~1.30x so the globe and airplane occupy ~77% of canvas,
+ * matching standard Windows desktop icon visual weight (like RustDesk and Comet).
  */
 const EMBLEM = `
-  <g>
-    <circle cx="256" cy="256" r="152" fill="none" stroke="url(#globe)" stroke-width="17"/>
-    <ellipse cx="256" cy="256" rx="152" ry="58" fill="none" stroke="url(#globe)" stroke-width="9" opacity="0.7"/>
-    <ellipse cx="256" cy="256" rx="58" ry="152" fill="none" stroke="url(#globe)" stroke-width="9" opacity="0.7"/>
+  <g transform="translate(256 256) scale(1.30) translate(-256 -256)">
+    <circle cx="256" cy="256" r="152" fill="none" stroke="url(#globe)" stroke-width="16"/>
+    <ellipse cx="256" cy="256" rx="152" ry="58" fill="none" stroke="url(#globe)" stroke-width="8.5" opacity="0.75"/>
+    <ellipse cx="256" cy="256" rx="58" ry="152" fill="none" stroke="url(#globe)" stroke-width="8.5" opacity="0.75"/>
     <path d="M256 118
              C267 118 273 127 274 142
              L277 232 L366 280 L366 302 L277 280
@@ -35,7 +37,7 @@ function svg({ rounded = true, maskable = false } = {}) {
     ? `<rect width="512" height="512" rx="116" fill="url(#bg)"/>`
     : `<rect width="512" height="512" fill="url(#bg)"/>`;
   const content = maskable
-    ? `<g transform="translate(256 256) scale(0.62) translate(-256 -256)">${EMBLEM}</g>`
+    ? `<g transform="translate(256 256) scale(0.96) translate(-256 -256)">${EMBLEM}</g>`
     : EMBLEM;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">

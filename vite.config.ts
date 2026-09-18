@@ -38,7 +38,7 @@ export default defineConfig(() => {
         injectRegister: 'auto',
         includeAssets: ['icons/apple-touch-icon.png', 'icons/favicon-48x48.png'],
         manifest: {
-          name: 'FlightMap // Offline 3D In-Flight Moving Map',
+          name: 'FlightMap',
           short_name: 'FlightMap',
           description:
             'Offline 3D in-flight moving map with cross-device GNSS telemetry. Standalone map or GPS relay mode.',
