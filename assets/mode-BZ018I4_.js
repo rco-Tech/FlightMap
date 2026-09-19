@@ -1,0 +1,1 @@
+const a="flightmap_mode";function e(){try{const t=localStorage.getItem(a);if(t==="map"||t==="relay")return t}catch{}return null}function n(t){try{localStorage.setItem(a,t)}catch{}}function o(){try{return window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===!0}catch{return!1}}export{e as g,o as i,n as s};
