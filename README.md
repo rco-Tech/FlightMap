@@ -1,7 +1,7 @@
 # ✈️ rTech Systems // FlightMap 3D
 ### Next-Generation Offline In-Flight Entertainment (IFE) Moving Map & Telemetry HUD
 
-[![Version](https://img.shields.io/badge/version-1.1.1--stable-00e5ff.svg?style=flat-square)](https://github.com/rco-Tech/FlightMap)
+[![Version](https://img.shields.io/badge/version-1.0.9--stable-00e5ff.svg?style=flat-square)](https://github.com/rco-Tech/FlightMap)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Engine](https://img.shields.io/badge/3D_Engine-Three.js_WebGL2-green.svg?style=flat-square)](https://threejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
@@ -15,9 +15,9 @@
 
 ## 🌟 Key Features & Capabilities
 
-### 🌐 1. Adaptive 8K/2K Globe & Vector Cartography
+### 🌐 1. Adaptive 8K/4K Globe & Vector Cartography
 - **8K Day & Night Textures**: `8192 × 4096` NASA-derived day cartography and nocturnal city-light illumination, with `4096 × 2048` specular ocean reflections and topographic elevation bump relief. Max anisotropic filtering.
-- **Automatic Texture Tiering**: A runtime `TextureTier` selector serves the full 8K set to desktop GPUs and a `2048 × 1024` mobile set (~0.8 MB total) to phones and any GPU capped below 8192, with a `localStorage` override for QA.
+- **Automatic Texture Tiering**: A runtime `TextureTier` selector serves the full 8K set to desktop GPUs and a `4096 × 2048` mobile set (~4 MB total) to phones and any GPU capped below 8192, with a `localStorage` override for QA.
 - **Topographic Elevation Bump Map**: GPU perturbation shader rendering mountain ranges (Alps, Himalayas, Rockies) from the elevation map.
 - **50m Natural Earth Geopolitical Borders**: 97,981 boundary line segments rendered in a single GPU draw call (`THREE.LineSegments`) for butter-smooth 60 FPS rendering.
 - **242 Country Labels with Horizon Occlusion Culling**: Dynamic 3D canvas billboard text sprites that automatically hide behind the planetary curvature ($\vec{n} \cdot \vec{d}_{\text{cam}} < 0.18$) and scale with zoom levels (LOD).
@@ -108,13 +108,23 @@ FlightMap installs as an offline **Progressive Web App** on Android and iOS. The
 - **Android (Chrome/Edge)**: open the site → menu → **Install app / Add to Home screen** (the browser's native prompt).
 - **iOS (Safari)**: open the site → **Share** → **Add to Home Screen**.
 
-Once installed, the app launches offline from the home screen, precaching the app shell, airport/geo data, and the mobile (2K) texture tier only — the 8K desktop textures are intentionally excluded from the service-worker cache.
+Once installed, the app launches offline from the home screen, precaching the app shell, airport/geo data, and the mobile (4K) texture tier only — the 8K desktop textures are intentionally excluded from the service-worker cache.
 
 ### Asset pipeline
 ```bash
-npm run assets:all     # download textures/data, build the 2K mobile tier, and generate PWA icons
+npm run assets:all     # download textures/data, build the 4K mobile tier, and generate PWA icons
 npm run assets:mobile  # rebuild only public/assets/textures/mobile
 npm run icons          # rebuild only public/icons
+```
+
+### Releases
+Tagged releases (`v*`) are built and published by GitHub Actions, with a ready-to-serve offline `dist` bundle attached as a release asset.
+
+```bash
+npm run release          # tag the current version and push (triggers the release workflow)
+npm run release patch    # bump patch, commit, tag, and push
+npm run release minor    # bump minor, commit, tag, and push
+npm run release major    # bump major, commit, tag, and push
 ```
 
 ---
@@ -139,7 +149,7 @@ FlightMap/
 │   ├── assets/
 │   │   ├── data/            # 7,900+ Airports JSON & 50m Natural Earth GeoJSON
 │   │   └── textures/        # 8K day/night, 4K bump/specular/clouds
-│   │       └── mobile/      # Auto-generated 2K tier for phones (~0.8 MB)
+│   │       └── mobile/      # Auto-generated 4K tier for phones (~4 MB)
 │   └── icons/               # PWA / maskable / apple-touch icons
 ├── scripts/
 │   ├── setup_assets.js          # Download + optimise offline data & textures
