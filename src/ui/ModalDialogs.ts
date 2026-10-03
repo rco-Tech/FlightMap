@@ -3,6 +3,7 @@ import { FlightPlanManager } from '../telemetry/FlightPlan';
 import { TelemetryManager } from '../telemetry/TelemetryManager';
 import { GlobeScene } from '../engine/GlobeScene';
 import { SolarCalculator } from '../telemetry/SolarCalculator';
+import { UnitManager, UnitSystem } from '../telemetry/UnitManager';
 import { APP_RELEASE_STRING } from '../version';
 
 export class ModalDialogs {
@@ -522,7 +523,14 @@ export class ModalDialogs {
                 <span class="preset-meta" style="font-size: 10px; opacity: 0.75;">Extreme Detail • High-VRAM & Desktop Tier</span>
               </button>
             </div>
-            <div style="margin-top: 10px;">
+            <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 6px;">
+              <button class="preset-btn" id="btn-open-settings-from-about" style="width: 100%; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
+                <span style="display: flex; align-items: center; gap: 8px;">
+                  <span>⚙️</span>
+                  <span style="font-weight: 600;">System Settings & Units (Speed / Distance)</span>
+                </span>
+                <span style="color: #38bdf8; font-size: 11px;">${UnitManager.getInstance().getSystemLabel()} &rarr;</span>
+              </button>
               <button class="preset-btn" id="btn-open-layers-from-about" style="width: 100%; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;">
                 <span style="display: flex; align-items: center; gap: 8px;">
                   <span>🗺️</span>
@@ -609,6 +617,11 @@ export class ModalDialogs {
     document.getElementById('btn-select-tier-8k')?.addEventListener('click', () => {
       globeScene?.switchTextureTier('full');
       this.showAboutModal(globeScene);
+    });
+
+    document.getElementById('btn-open-settings-from-about')?.addEventListener('click', () => {
+      modal.remove();
+      this.showSettingsModal(globeScene);
     });
 
     document.getElementById('btn-open-layers-from-about')?.addEventListener('click', () => {
@@ -984,5 +997,267 @@ export class ModalDialogs {
         updateActiveButton('');
       });
     }
+  }
+
+  /**
+   * Show Settings & Measurement Units (Maritime / Metric / Imperial) Dialog
+   */
+  public showSettingsModal(globeScene?: GlobeScene): void {
+    const existing = document.getElementById('settings-modal');
+    if (existing) existing.remove();
+
+    const unitManager = UnitManager.getInstance();
+    const currentSystem = unitManager.getSystem();
+    const currentCoordFmt = unitManager.getCoordinateFormat();
+
+    const modal = document.createElement('div');
+    modal.id = 'settings-modal';
+    modal.className = 'modal-backdrop';
+
+    modal.innerHTML = `
+      <div class="modal-card settings-modal-card">
+        <div class="modal-header">
+          <div class="modal-title">
+            <span class="icon">⚙️</span>
+            <span>Settings & Measurement Units</span>
+          </div>
+          <button class="modal-close" id="btn-close-settings">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <!-- UNITS SELECTION SECTION -->
+          <div class="about-section">
+            <div class="section-label">SPEED & DISTANCE MEASUREMENT SYSTEM</div>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+              Select your preferred measurement units for ground speed, journey distance, flight levels, and HUD tapes. Changes apply instantly across the moving map.
+            </p>
+
+            <div class="settings-units-grid">
+              <!-- MARITIME (AVIATION) -->
+              <div class="unit-option-card ${currentSystem === 'maritime' ? 'active' : ''}" data-system="maritime" id="unit-opt-maritime">
+                <div class="unit-card-header">
+                  <div class="unit-card-title-row">
+                    <span class="unit-card-icon">⚓</span>
+                    <span class="unit-card-name">Maritime / Aviation</span>
+                  </div>
+                  <span class="unit-card-badge ${currentSystem === 'maritime' ? 'active-badge' : ''}">
+                    ${currentSystem === 'maritime' ? '✓ ACTIVE' : 'ICAO STD'}
+                  </span>
+                </div>
+                <div class="unit-specs-list">
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Speed</span>
+                    <span class="spec-v">Knots (KTS)</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Distance</span>
+                    <span class="spec-v">Nautical Miles (NM)</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Altitude</span>
+                    <span class="spec-v">Feet (FT) / Flight Levels</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Temperature</span>
+                    <span class="spec-v">Celsius (&deg;C)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- METRIC (SI) -->
+              <div class="unit-option-card ${currentSystem === 'metric' ? 'active' : ''}" data-system="metric" id="unit-opt-metric">
+                <div class="unit-card-header">
+                  <div class="unit-card-title-row">
+                    <span class="unit-card-icon">🌍</span>
+                    <span class="unit-card-name">Metric (SI)</span>
+                  </div>
+                  <span class="unit-card-badge ${currentSystem === 'metric' ? 'active-badge' : ''}">
+                    ${currentSystem === 'metric' ? '✓ ACTIVE' : 'GLOBAL SI'}
+                  </span>
+                </div>
+                <div class="unit-specs-list">
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Speed</span>
+                    <span class="spec-v">Kilometers / Hour (KM/H)</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Distance</span>
+                    <span class="spec-v">Kilometers (KM)</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Altitude</span>
+                    <span class="spec-v">Meters (M) / Flight Levels</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Temperature</span>
+                    <span class="spec-v">Celsius (&deg;C)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- IMPERIAL (STATUTE) -->
+              <div class="unit-option-card ${currentSystem === 'imperial' ? 'active' : ''}" data-system="imperial" id="unit-opt-imperial">
+                <div class="unit-card-header">
+                  <div class="unit-card-title-row">
+                    <span class="unit-card-icon">🚗</span>
+                    <span class="unit-card-name">Imperial (Statute)</span>
+                  </div>
+                  <span class="unit-card-badge ${currentSystem === 'imperial' ? 'active-badge' : ''}">
+                    ${currentSystem === 'imperial' ? '✓ ACTIVE' : 'US / UK'}
+                  </span>
+                </div>
+                <div class="unit-specs-list">
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Speed</span>
+                    <span class="spec-v">Miles / Hour (MPH)</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Distance</span>
+                    <span class="spec-v">Statute Miles (MI)</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Altitude</span>
+                    <span class="spec-v">Feet (FT) / Flight Levels</span>
+                  </div>
+                  <div class="unit-spec-row">
+                    <span class="spec-k">Temperature</span>
+                    <span class="spec-v">Fahrenheit (&deg;F)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- COORDINATES FORMAT SECTION -->
+          <div class="about-section">
+            <div class="section-label">COORDINATES & NAVIGATION DISPLAY</div>
+            <div class="coord-format-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px;">
+              <button class="preset-btn ${currentCoordFmt === 'dms' ? 'active' : ''}" id="btn-coord-dms" style="padding: 12px; text-align: left;">
+                <div class="preset-flight" style="display: flex; justify-content: space-between;">
+                  <span>2-Row DMS (Standard)</span>
+                  <span style="font-size: 10px; color: var(--accent-cyan);">${currentCoordFmt === 'dms' ? '● SELECTED' : ''}</span>
+                </div>
+                <div class="preset-route" style="font-family: var(--font-mono); font-size: 12px; margin-top: 4px;">
+                  LAT 51&deg; 28' 12" N<br>LON 000&deg; 27' 42" W
+                </div>
+                <div class="preset-meta" style="font-size: 10px; margin-top: 4px;">High-legibility split rows for N/S & E/W</div>
+              </button>
+
+              <button class="preset-btn ${currentCoordFmt === 'decimal' ? 'active' : ''}" id="btn-coord-decimal" style="padding: 12px; text-align: left;">
+                <div class="preset-flight" style="display: flex; justify-content: space-between;">
+                  <span>Decimal Degrees</span>
+                  <span style="font-size: 10px; color: var(--accent-cyan);">${currentCoordFmt === 'decimal' ? '● SELECTED' : ''}</span>
+                </div>
+                <div class="preset-route" style="font-family: var(--font-mono); font-size: 12px; margin-top: 4px;">
+                  LAT +51.4700&deg; N<br>LON -000.4617&deg; W
+                </div>
+                <div class="preset-meta" style="font-size: 10px; margin-top: 4px;">Standard GIS decimal degrees format</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- QUICK LINKS SECTION -->
+          <div class="about-section">
+            <div class="section-label">SYSTEM & DISPLAY CONFIGURATION</div>
+            <div class="quick-links-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px;">
+              <button class="btn-secondary" id="btn-open-map-layers" style="text-align: left; padding: 10px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>🗺️</span>
+                <span>Map Layers & Cartography</span>
+              </button>
+              <button class="btn-secondary" id="btn-open-solar-settings" style="text-align: left; padding: 10px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>☀️</span>
+                <span>Day/Night Solar Simulator</span>
+              </button>
+              <button class="btn-secondary" id="btn-open-route-settings" style="text-align: left; padding: 10px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>✈️</span>
+                <span>Flight Plan & Route Selector</span>
+              </button>
+              <button class="btn-secondary" id="btn-open-gps-settings" style="text-align: left; padding: 10px 12px; font-size: 12px; display: flex; align-items: center; gap: 8px;">
+                <span>📱</span>
+                <span>GPS Relay & Hardware Connect</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <div style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+            <span>Active Unit System:</span>
+            <span style="font-family: var(--font-mono); color: var(--accent-cyan); font-weight: 700;" id="footer-active-system">${unitManager.getSystemLabel()}</span>
+          </div>
+          <button class="btn-primary" id="btn-close-settings-footer">Close</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Wire unit cards
+    const updateUnitCards = (active: UnitSystem) => {
+      modal.querySelectorAll('.unit-option-card').forEach((card) => {
+        const sys = (card as HTMLElement).dataset.system as UnitSystem;
+        const badge = card.querySelector('.unit-card-badge');
+        if (sys === active) {
+          card.classList.add('active');
+          if (badge) {
+            badge.classList.add('active-badge');
+            badge.textContent = '✓ ACTIVE';
+          }
+        } else {
+          card.classList.remove('active');
+          if (badge) {
+            badge.classList.remove('active-badge');
+            badge.textContent = sys === 'maritime' ? 'ICAO STD' : sys === 'metric' ? 'GLOBAL SI' : 'US / UK';
+          }
+        }
+      });
+      const footerSys = document.getElementById('footer-active-system');
+      if (footerSys) footerSys.textContent = unitManager.getSystemLabel();
+    };
+
+    modal.querySelectorAll('.unit-option-card').forEach((card) => {
+      card.addEventListener('click', () => {
+        const sys = (card as HTMLElement).dataset.system as UnitSystem;
+        unitManager.setSystem(sys);
+        updateUnitCards(sys);
+        this.telemetryManager.broadcastUnitSystem(sys);
+      });
+    });
+
+    // Wire coordinate buttons
+    const btnDms = document.getElementById('btn-coord-dms');
+    const btnDec = document.getElementById('btn-coord-decimal');
+    btnDms?.addEventListener('click', () => {
+      unitManager.setCoordinateFormat('dms');
+      btnDms.classList.add('active');
+      btnDec?.classList.remove('active');
+    });
+    btnDec?.addEventListener('click', () => {
+      unitManager.setCoordinateFormat('decimal');
+      btnDec.classList.add('active');
+      btnDms?.classList.remove('active');
+    });
+
+    // Wire quick link buttons
+    document.getElementById('btn-open-map-layers')?.addEventListener('click', () => {
+      modal.remove();
+      if (globeScene) this.showMapLayersModal(globeScene);
+    });
+    document.getElementById('btn-open-solar-settings')?.addEventListener('click', () => {
+      modal.remove();
+      if (globeScene) this.showSolarModal(globeScene);
+    });
+    document.getElementById('btn-open-route-settings')?.addEventListener('click', () => {
+      modal.remove();
+      this.showRouteModal();
+    });
+    document.getElementById('btn-open-gps-settings')?.addEventListener('click', () => {
+      modal.remove();
+      this.showGpsModal();
+    });
+
+    // Close handlers
+    document.getElementById('btn-close-settings')?.addEventListener('click', () => modal.remove());
+    document.getElementById('btn-close-settings-footer')?.addEventListener('click', () => modal.remove());
   }
 }

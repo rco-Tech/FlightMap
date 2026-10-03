@@ -489,6 +489,57 @@ body.mobile-body {
   background: rgba(0, 229, 255, 0.15);
 }
 
+/* Unit System Selector Bar on Mobile */
+.mobile-unit-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 8px 12px;
+  gap: 8px;
+}
+
+.m-unit-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.m-unit-pills {
+  display: flex;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.m-unit-pill {
+  padding: 6px 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.m-unit-pill:active {
+  transform: scale(0.96);
+}
+
+.m-unit-pill.active {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(0, 153, 204, 0.4));
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
 /* Telemetry Grid */
 .telemetry-mobile-grid {
   display: grid;

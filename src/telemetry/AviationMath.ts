@@ -229,6 +229,39 @@ export class AviationMath {
   }
 
   /**
+   * Format coordinate row components for structured 2-row display.
+   */
+  public static formatCoordinateRow(deg: number, isLat: boolean): {
+    dms: string;
+    cardinal: 'N' | 'S' | 'E' | 'W';
+    axis: 'LAT' | 'LON';
+    decimalStr: string;
+    formatted: string;
+  } {
+    const absolute = Math.abs(deg);
+    const degrees = Math.floor(absolute);
+    const minutesNotTruncated = (absolute - degrees) * 60;
+    const minutes = Math.floor(minutesNotTruncated);
+    const seconds = Math.floor((minutesNotTruncated - minutes) * 60);
+
+    const cardinal: 'N' | 'S' | 'E' | 'W' = isLat ? (deg >= 0 ? 'N' : 'S') : deg >= 0 ? 'E' : 'W';
+    const axis: 'LAT' | 'LON' = isLat ? 'LAT' : 'LON';
+    const degPadded = isLat ? String(degrees).padStart(2, '0') : String(degrees).padStart(3, '0');
+    const minPadded = String(minutes).padStart(2, '0');
+    const secPadded = String(seconds).padStart(2, '0');
+    const dms = `${degPadded}° ${minPadded}' ${secPadded}"`;
+    const decimalStr = `${absolute.toFixed(4)}°`;
+
+    return {
+      dms,
+      cardinal,
+      axis,
+      decimalStr,
+      formatted: `${dms} ${cardinal}`
+    };
+  }
+
+  /**
    * Format seconds remaining into HH:MM or MM:SS string.
    */
   public static formatDuration(totalSeconds: number): string {

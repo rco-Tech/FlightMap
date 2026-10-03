@@ -1,5 +1,6 @@
 import { AviationMath, ISAAtmosphere } from './AviationMath';
 import { FlightPlanManager } from './FlightPlan';
+import { UnitManager, UnitSystem } from './UnitManager';
 
 export type TelemetrySource = 'simulation' | 'mobile_gps' | 'browser_gps' | 'serial_nmea';
 
@@ -93,6 +94,18 @@ export class TelemetryManager {
           airline: plan.airline,
           aircraft: plan.aircraftType,
           totalDistanceNM: plan.totalDistanceNM,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+    }
+  }
+
+  public broadcastUnitSystem(system: UnitSystem): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify({
+          type: 'unit_system',
+          system,
           timestamp: Date.now()
         }));
       } catch (e) {}
@@ -349,6 +362,7 @@ export class TelemetryManager {
             if (activePlan) {
               this.broadcastFlightPlan(activePlan);
             }
+            this.broadcastUnitSystem(UnitManager.getInstance().getSystem());
           } catch (e) {}
         };
 
@@ -424,6 +438,10 @@ export class TelemetryManager {
                   timestamp: Date.now()
                 }));
               } catch (e) {}
+            }
+
+            if (msg.type === 'unit_system' && msg.system) {
+              UnitManager.getInstance().setSystem(msg.system);
             }
           } catch (e) {
             console.error('[TelemetryManager] Error parsing WS message:', e);

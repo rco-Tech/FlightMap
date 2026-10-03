@@ -1,5 +1,7 @@
 import './mobile.css';
 import { FlightPlanManager, type RoutePreset } from './telemetry/FlightPlan';
+import { UnitManager, type UnitSystem } from './telemetry/UnitManager';
+import { AviationMath } from './telemetry/AviationMath';
 
 type ConnectionState = 'laptop_connected' | 'relay_connected' | 'connecting' | 'offline';
 
@@ -7,6 +9,7 @@ class MobileController {
   private ws: WebSocket | null = null;
   private isWsConnected: boolean = false;
   private isLaptopOnline: boolean = false;
+  private unitManager: UnitManager = UnitManager.getInstance();
   private targetHost: string = '';
   private packetsSent: number = 0;
   private packetsAcked: number = 0;
@@ -214,6 +217,16 @@ class MobileController {
           <div class="transmission-counter" id="tx-counter">Packets Sent to Laptop: 0</div>
         </div>
 
+        <!-- Measurement Unit Selector -->
+        <div class="mobile-unit-bar">
+          <span class="m-unit-lbl">UNITS:</span>
+          <div class="m-unit-pills">
+            <button class="m-unit-pill ${this.unitManager.getSystem() === 'maritime' ? 'active' : ''}" data-unit="maritime">⚓ MARITIME</button>
+            <button class="m-unit-pill ${this.unitManager.getSystem() === 'metric' ? 'active' : ''}" data-unit="metric">🌍 METRIC</button>
+            <button class="m-unit-pill ${this.unitManager.getSystem() === 'imperial' ? 'active' : ''}" data-unit="imperial">🚗 IMPERIAL</button>
+          </div>
+        </div>
+
         <!-- Real-time GPS Telemetry Grid -->
         <div class="telemetry-mobile-grid">
           <div class="metric-box">
@@ -228,7 +241,7 @@ class MobileController {
             <span class="label">GROUND SPEED</span>
             <div class="val-row">
               <span class="big-val" id="disp-speed">--</span>
-              <span class="unit">KTS</span>
+              <span class="unit" id="disp-speed-unit">KTS</span>
             </div>
           </div>
 
@@ -236,7 +249,7 @@ class MobileController {
             <span class="label">GPS ALTITUDE</span>
             <div class="val-row">
               <span class="big-val" id="disp-alt">--</span>
-              <span class="unit">FT</span>
+              <span class="unit" id="disp-alt-unit">FT</span>
             </div>
           </div>
 
@@ -448,6 +461,22 @@ class MobileController {
         this.renderMobilePresets();
       }
     }
+
+    if (msg.type === 'unit_system' && msg.system) {
+      this.unitManager.setSystem(msg.system);
+      this.setActiveUnitPill(msg.system);
+      this.updateMobileReadouts(this.isSimulating ? 'Simulator' : 'GPS');
+    }
+  }
+
+  private setActiveUnitPill(system: string): void {
+    document.querySelectorAll('.m-unit-pill').forEach((btn) => {
+      if ((btn as HTMLElement).dataset.unit === system) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
   }
 
   private startHeartbeat(): void {
@@ -640,6 +669,26 @@ class MobileController {
       chip.addEventListener('click', () => {
         const host = chip.getAttribute('data-host');
         if (host) this.setTargetHost(host);
+      });
+    });
+
+    // Measurement unit pill toggles
+    document.querySelectorAll('.m-unit-pill').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const sys = (e.currentTarget as HTMLElement).dataset.unit as UnitSystem;
+        if (!sys) return;
+        this.unitManager.setSystem(sys);
+        this.setActiveUnitPill(sys);
+        this.updateMobileReadouts(this.isSimulating ? 'Simulator' : 'GPS');
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          try {
+            this.ws.send(JSON.stringify({
+              type: 'unit_system',
+              system: sys,
+              timestamp: Date.now()
+            }));
+          } catch (err) {}
+        }
       });
     });
 
@@ -1032,11 +1081,19 @@ class MobileController {
       if (el) el.textContent = text;
     };
 
+    const speedData = this.unitManager.formatSpeed(this.lastSpeed);
+    const altData = this.unitManager.formatAltitude(this.lastAlt);
+
     setText('disp-acc', `±${this.lastAccuracy}`);
-    setText('disp-speed', this.lastSpeed.toString());
-    setText('disp-alt', this.lastAlt.toLocaleString());
+    setText('disp-speed', speedData.value.toString());
+    setText('disp-speed-unit', speedData.unit);
+    setText('disp-alt', altData.value.toLocaleString());
+    setText('disp-alt-unit', altData.unit);
     setText('disp-heading', `${this.lastHeading}°`);
-    setText('disp-coords', `${this.lastLat.toFixed(5)}°, ${this.lastLon.toFixed(5)}°`);
+
+    const latRow = AviationMath.formatCoordinateRow(this.lastLat, true);
+    const lonRow = AviationMath.formatCoordinateRow(this.lastLon, false);
+    setText('disp-coords', `${latRow.formatted}  •  ${lonRow.formatted}`);
     setText('disp-fix-type', `✓ ${fixType} active`);
   }
 

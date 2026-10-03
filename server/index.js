@@ -299,6 +299,10 @@ function setupWebSocket(wss) {
           console.log(`[FlightPlan] Active flight plan updated: ${data.from} -> ${data.to} (${data.flightNumber})`);
         }
 
+        if (data.type === 'unit_system') {
+          console.log(`[UnitSystem] Active unit system switched to: "${data.system}"`);
+        }
+
         // Broadcast telemetry, camera commands, or flight plans to all other connected clients
         for (const client of clients) {
           if (client !== ws && client.readyState === WebSocket.OPEN) {

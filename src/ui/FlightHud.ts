@@ -1,6 +1,7 @@
 import { AviationMath } from '../telemetry/AviationMath';
 import { FlightPlanData, FlightPlanManager } from '../telemetry/FlightPlan';
 import { TelemetryManager, TelemetryState } from '../telemetry/TelemetryManager';
+import { UnitManager } from '../telemetry/UnitManager';
 import { CameraManager, CameraMode } from '../engine/CameraManager';
 import { GlobeScene } from '../engine/GlobeScene';
 import { ModalDialogs } from './ModalDialogs';
@@ -15,6 +16,7 @@ export class FlightHud {
   private flightPlanManager: FlightPlanManager;
   private modalDialogs: ModalDialogs;
   private themeManager: ThemeManager;
+  private unitManager: UnitManager;
   private currentAircraftType: AircraftType = 'widebody_airliner';
 
   constructor(container: HTMLElement, cameraManager: CameraManager, globeScene: GlobeScene) {
@@ -25,6 +27,7 @@ export class FlightHud {
     this.flightPlanManager = FlightPlanManager.getInstance();
     this.modalDialogs = ModalDialogs.getInstance();
     this.themeManager = ThemeManager.getInstance();
+    this.unitManager = UnitManager.getInstance();
 
     this.renderBaseLayout();
     this.initEventListeners();
@@ -105,6 +108,10 @@ export class FlightHud {
             <button class="hud-pill-btn" id="btn-map-tier" title="Map Layers, Styles & Resolution">
               <span class="btn-icon">🌐</span>
               <span id="tier-btn-label">MAP (${this.globeScene.textureTier === 'full' ? '8K' : '4K'})</span>
+            </button>
+            <button class="hud-pill-btn" id="btn-open-settings" title="Settings: Units (Maritime / Metric / Imperial) & Display Options">
+              <span class="btn-icon">⚙️</span>
+              <span id="settings-btn-label">${this.unitManager.getSystemLabel()}</span>
             </button>
             <button class="hud-icon-btn" id="btn-open-about" title="System Specifications & About">
               <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
@@ -196,26 +203,35 @@ export class FlightHud {
 
           <!-- BOTTOM TELEMETRY STRIP (ROW 2 ON MOBILE) -->
           <footer class="hud-bottom-bar">
-            <div class="telemetry-card">
-              <span class="label">GROUND SPEED</span>
+            <div class="telemetry-card ground-speed-card clickable-card" id="card-groundspeed" title="Ground Speed (Click to open Settings / Toggle Units: Maritime / Metric / Imperial)">
+              <div class="card-top-row">
+                <span class="label">GROUND SPEED</span>
+                <span class="unit-system-tag" id="tag-speed-system">${this.unitManager.getSystemLabel()}</span>
+              </div>
               <div class="value-row">
                 <span class="big-val" id="val-groundspeed">485</span>
-                <span class="unit">KTS</span>
+                <span class="unit" id="unit-groundspeed">KTS</span>
                 <span class="sub-val" id="val-speed-kmh">898 KM/H</span>
               </div>
             </div>
 
             <div class="telemetry-card">
-              <span class="label">OUTSIDE AIR TEMP (OAT)</span>
+              <div class="card-top-row">
+                <span class="label">OUTSIDE AIR TEMP (OAT)</span>
+                <span class="card-mini-badge" id="lbl-isa-dev">ISA STD</span>
+              </div>
               <div class="value-row">
                 <span class="big-val" id="val-oat-c">-52</span>
-                <span class="unit">&deg;C</span>
+                <span class="unit" id="unit-oat">&deg;C</span>
                 <span class="sub-val" id="val-oat-f">-61&deg;F</span>
               </div>
             </div>
 
             <div class="telemetry-card">
-              <span class="label">TRUE TRACK / HEADING</span>
+              <div class="card-top-row">
+                <span class="label">TRUE TRACK / HEADING</span>
+                <span class="card-mini-badge">GYRO</span>
+              </div>
               <div class="value-row">
                 <span class="big-val" id="val-heading">285&deg;</span>
                 <span class="unit">TRUE</span>
@@ -223,11 +239,24 @@ export class FlightHud {
               </div>
             </div>
 
-            <div class="telemetry-card">
-              <span class="label">COORDINATES</span>
-              <div class="value-row">
-                <span class="coord-val" id="val-coordinates">51°28'12"N 000°27'42"W</span>
+            <div class="telemetry-card coord-card" id="card-coordinates" title="WGS84 Coordinates: Latitude (N/S) & Longitude (E/W)">
+              <div class="card-top-row">
+                <span class="label">COORDINATES</span>
+                <span class="card-mini-badge" id="badge-coord-fmt">2-ROW DMS</span>
               </div>
+              <div class="coord-rows">
+                <div class="coord-row">
+                  <span class="coord-axis">LAT</span>
+                  <span class="coord-num" id="val-coord-lat">51° 28' 12"</span>
+                  <span class="coord-cardinal dir-n" id="val-coord-lat-dir">N</span>
+                </div>
+                <div class="coord-row">
+                  <span class="coord-axis">LON</span>
+                  <span class="coord-num" id="val-coord-lon">000° 27' 42"</span>
+                  <span class="coord-cardinal dir-w" id="val-coord-lon-dir">W</span>
+                </div>
+              </div>
+              <span class="coord-val" id="val-coordinates" style="display: none;">51°28'12"N 000°27'42"W</span>
             </div>
 
             <div class="telemetry-card clocks-card">
@@ -330,6 +359,33 @@ export class FlightHud {
       this.modalDialogs.showAboutModal(this.globeScene);
     });
 
+    document.getElementById('btn-open-settings')?.addEventListener('click', () => {
+      this.modalDialogs.showSettingsModal(this.globeScene);
+    });
+
+    document.getElementById('card-groundspeed')?.addEventListener('click', () => {
+      this.modalDialogs.showSettingsModal(this.globeScene);
+    });
+
+    document.getElementById('tag-speed-system')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const nextSys = this.unitManager.cycleSystem();
+      this.telemetryManager.broadcastUnitSystem(nextSys);
+    });
+
+    document.getElementById('card-coordinates')?.addEventListener('click', () => {
+      const nextFmt = this.unitManager.getCoordinateFormat() === 'dms' ? 'decimal' : 'dms';
+      this.unitManager.setCoordinateFormat(nextFmt);
+    });
+
+    this.unitManager.onSystemChange(() => {
+      const sysLabel = this.unitManager.getSystemLabel();
+      const tag = document.getElementById('tag-speed-system');
+      if (tag) tag.textContent = sysLabel;
+      const btnLbl = document.getElementById('settings-btn-label');
+      if (btnLbl) btnLbl.textContent = sysLabel;
+    });
+
     document.getElementById('btn-map-tier')?.addEventListener('click', () => {
       this.modalDialogs.showMapLayersModal(this.globeScene, () => this.updateMapTierButtonLabel());
     });
@@ -406,11 +462,19 @@ export class FlightHud {
       if (el) el.textContent = text;
     };
 
-    // Instrument Tapes
-    setText('tape-speed-value', state.groundSpeed.toString());
+    // Instrument Tapes & Dynamic Units
+    const speedData = this.unitManager.formatSpeed(state.groundSpeed);
+    setText('tape-speed-value', speedData.value.toString());
+    const tapeLabel = this.container.querySelector('.speed-tape .tape-label');
+    if (tapeLabel) tapeLabel.textContent = speedData.unit;
+
     setText('tape-mach-value', `M ${state.atmosphere.mach.toFixed(2)}`);
-    setText('tape-altitude-value', state.altitude.toLocaleString());
-    setText('tape-flightlevel-value', `FL${Math.round(state.altitude / 100)}`);
+
+    const altData = this.unitManager.formatAltitude(state.altitude);
+    setText('tape-altitude-value', altData.value.toLocaleString());
+    setText('tape-flightlevel-value', altData.flightLevelStr);
+    const altTapeLabel = this.container.querySelector('.altitude-tape .tape-label');
+    if (altTapeLabel) altTapeLabel.textContent = altData.unit === 'M' ? 'ALT / M' : 'ALT / FT';
 
     // VSI Needle
     const vsiNeedle = document.getElementById('vsi-needle');
@@ -430,7 +494,8 @@ export class FlightHud {
     if (progressPlane) progressPlane.style.left = `${progressPercent}%`;
 
     // Compact distance readouts (avoids overlapping on mobile)
-    setText('hud-distance-traveled', `${Math.round(state.distanceTraveledNM).toLocaleString()} NM`);
+    const distTraveled = this.unitManager.formatDistance(state.distanceTraveledNM);
+    setText('hud-distance-traveled', distTraveled.displayStr);
     
     // Journey ETE and ETA Calculation
     const eteStr = AviationMath.formatDuration(state.eteSeconds);
@@ -474,20 +539,45 @@ export class FlightHud {
       eteTimeElem.textContent = `ETE ${eteStr} • ETA ${etaTimeStr}${destCode ? ' ' + destCode : ''}`;
     }
 
-    setText('hud-distance-remaining', `${Math.round(state.distanceRemainingNM).toLocaleString()} NM`);
+    const distRemaining = this.unitManager.formatDistance(state.distanceRemainingNM);
+    setText('hud-distance-remaining', distRemaining.displayStr);
 
     // Telemetry strip
-    setText('val-groundspeed', state.groundSpeed.toString());
-    setText('val-speed-kmh', `${Math.round(state.groundSpeed * AviationMath.KNOTS_TO_KMH)} KM/H`);
+    setText('val-groundspeed', speedData.value.toString());
+    setText('unit-groundspeed', speedData.unit);
+    setText('val-speed-kmh', `${speedData.secondaryValue} ${speedData.secondaryUnit}`);
+    setText('tag-speed-system', this.unitManager.getSystemLabel());
+    setText('settings-btn-label', this.unitManager.getSystemLabel());
 
-    setText('val-oat-c', `${state.atmosphere.temperatureC}`);
-    setText('val-oat-f', `${state.atmosphere.temperatureF}°F`);
+    const tempData = this.unitManager.formatTemperature(state.atmosphere.temperatureC, state.atmosphere.temperatureF);
+    setText('val-oat-c', `${tempData.primaryValue}`);
+    setText('unit-oat', tempData.primaryUnit);
+    setText('val-oat-f', `${tempData.secondaryValue}${tempData.secondaryUnit}`);
 
     setText('val-heading', `${Math.round(state.heading)}°`);
     const pitchSign = state.pitch >= 0 ? '+' : '';
     const rollSign = state.roll >= 0 ? '+' : '';
     setText('val-pitch-roll', `${pitchSign}${state.pitch.toFixed(1)}° / ${rollSign}${state.roll.toFixed(1)}°`);
 
+    // 2-Row Coordinates (N/S on top of E/W)
+    const isDecimal = this.unitManager.getCoordinateFormat() === 'decimal';
+    if (isDecimal) {
+      const latCard = state.lat >= 0 ? 'N' : 'S';
+      const lonCard = state.lon >= 0 ? 'E' : 'W';
+      setText('val-coord-lat', `${Math.abs(state.lat).toFixed(4)}°`);
+      setText('val-coord-lat-dir', latCard);
+      setText('val-coord-lon', `${Math.abs(state.lon).toFixed(4)}°`);
+      setText('val-coord-lon-dir', lonCard);
+      setText('badge-coord-fmt', 'DEC DEG');
+    } else {
+      const latRow = AviationMath.formatCoordinateRow(state.lat, true);
+      const lonRow = AviationMath.formatCoordinateRow(state.lon, false);
+      setText('val-coord-lat', latRow.dms);
+      setText('val-coord-lat-dir', latRow.cardinal);
+      setText('val-coord-lon', lonRow.dms);
+      setText('val-coord-lon-dir', lonRow.cardinal);
+      setText('badge-coord-fmt', '2-ROW DMS');
+    }
     const latDms = AviationMath.formatDMS(state.lat, true);
     const lonDms = AviationMath.formatDMS(state.lon, false);
     setText('val-coordinates', `${latDms} ${lonDms}`);
