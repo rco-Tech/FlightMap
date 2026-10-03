@@ -194,10 +194,12 @@ export class FlightHud {
 
             <!-- Simulation Quick Controls -->
             <div class="sim-quick-bar" id="sim-quick-bar">
-              <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume">
+              <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume Simulation">
                 <svg id="sim-pause-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
               </button>
-              <span class="sim-speed-tag" id="sim-speed-tag">10x</span>
+              <button class="sim-ctrl-btn sim-speed-tag" id="btn-sim-speed" title="Cycle Simulation Speed (1x, 2x, 5x, 10x, 25x, 50x)">
+                <span id="sim-speed-tag">${this.telemetryManager.getSimulationSpeed()}x</span>
+              </button>
             </div>
           </div>
 
@@ -459,13 +461,56 @@ export class FlightHud {
     // Sim pause button
     document.getElementById('btn-sim-pause')?.addEventListener('click', () => {
       const isPaused = this.telemetryManager.toggleSimulationPause();
+      const pauseBtn = document.getElementById('btn-sim-pause');
       const icon = document.getElementById('sim-pause-icon');
-      if (icon) {
-        icon.innerHTML = isPaused
-          ? '<path d="M8 5v14l11-7z"/>'
-          : '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+      if (pauseBtn && icon) {
+        if (isPaused) {
+          pauseBtn.classList.add('paused');
+          pauseBtn.title = 'Resume Simulation';
+          icon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+        } else {
+          pauseBtn.classList.remove('paused');
+          pauseBtn.title = 'Pause Simulation';
+          icon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        }
       }
     });
+
+    // Sim speed cycle button (1x, 2x, 5x, 10x, 25x, 50x)
+    const speedCycle = [1, 2, 5, 10, 25, 50];
+    const handleSpeedCycle = () => {
+      if (this.telemetryManager.getSource() !== 'simulation') {
+        this.telemetryManager.setSource('simulation');
+      }
+      const current = this.telemetryManager.getSimulationSpeed();
+      let nextIndex = speedCycle.indexOf(current) + 1;
+      if (nextIndex <= 0 || nextIndex >= speedCycle.length) {
+        nextIndex = 0;
+      }
+      const nextSpeed = speedCycle[nextIndex];
+      this.telemetryManager.setSimulationSpeed(nextSpeed);
+
+      const tag = document.getElementById('sim-speed-tag');
+      if (tag) tag.textContent = `${nextSpeed}x`;
+
+      const srcLabel = document.getElementById('gps-source-label');
+      if (srcLabel && this.telemetryManager.getSource() === 'simulation') {
+        srcLabel.textContent = `SIM ${nextSpeed}x`;
+      }
+
+      // Sync active state in open GPS modal if present
+      document.querySelectorAll('.speed-pill').forEach((pill) => {
+        const el = pill as HTMLElement;
+        const pSpeed = parseInt(el.dataset.speed || '0', 10);
+        if (pSpeed === nextSpeed) {
+          el.classList.add('active');
+        } else {
+          el.classList.remove('active');
+        }
+      });
+    };
+
+    document.getElementById('btn-sim-speed')?.addEventListener('click', handleSpeedCycle);
   }
 
   private subscribeToUpdates(): void {
@@ -644,6 +689,33 @@ export class FlightHud {
       } else {
         srcDot.className = 'pulse-dot active-blue';
         srcLabel.textContent = `SIM ${this.telemetryManager.getSimulationSpeed()}x`;
+      }
+    }
+
+    // Always keep simulation speed button synced with TelemetryManager
+    const currentSpeed = this.telemetryManager.getSimulationSpeed();
+    const simSpeedTag = document.getElementById('sim-speed-tag');
+    if (simSpeedTag && simSpeedTag.textContent !== `${currentSpeed}x`) {
+      simSpeedTag.textContent = `${currentSpeed}x`;
+    }
+
+    // Keep pause button state synced
+    const pauseBtn = document.getElementById('btn-sim-pause');
+    const pauseIcon = document.getElementById('sim-pause-icon');
+    const isPaused = this.telemetryManager.isPaused();
+    if (pauseBtn && pauseIcon) {
+      if (isPaused) {
+        if (!pauseBtn.classList.contains('paused')) {
+          pauseBtn.classList.add('paused');
+          pauseBtn.title = 'Resume Simulation';
+          pauseIcon.innerHTML = '<path d="M8 5v14l11-7z"/>';
+        }
+      } else {
+        if (pauseBtn.classList.contains('paused')) {
+          pauseBtn.classList.remove('paused');
+          pauseBtn.title = 'Pause Simulation';
+          pauseIcon.innerHTML = '<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>';
+        }
       }
     }
 

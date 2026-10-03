@@ -583,11 +583,43 @@ html, body {
   border-color: var(--accent-cyan);
 }
 
+.sim-ctrl-btn.paused {
+  background: rgba(255, 171, 0, 0.25);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 8px rgba(255, 171, 0, 0.4);
+}
+
 .sim-speed-tag {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  border-radius: 6px;
+  padding: 2px 7px;
+  height: 26px;
+  min-width: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.sim-speed-tag:hover {
+  background: rgba(0, 229, 255, 0.28);
+  border-color: var(--accent-cyan);
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.4);
+}
+
+.sim-speed-tag:active {
+  transform: scale(0.92);
+  background: rgba(0, 229, 255, 0.45);
 }
 
 /* --- BOTTOM TELEMETRY BAR --- */

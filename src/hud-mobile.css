@@ -272,10 +272,18 @@
     color: #ffffff !important;
   }
 
+  .sim-ctrl-btn.paused {
+    background: rgba(255, 171, 0, 0.25) !important;
+    border-color: var(--accent-gold) !important;
+    color: var(--accent-gold) !important;
+    box-shadow: 0 0 8px rgba(255, 171, 0, 0.4) !important;
+  }
+
   .sim-speed-tag {
     height: 26px !important;
+    min-width: 32px !important;
     padding: 0 6px !important;
-    border-radius: 5px !important;
+    border-radius: 6px !important;
     display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -284,11 +292,16 @@
     background: rgba(0, 229, 255, 0.14) !important;
     border: 1px solid rgba(0, 229, 255, 0.35) !important;
     color: var(--accent-cyan) !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    transition: all 0.2s ease !important;
   }
 
-  .sim-speed-tag {
-    font-size: 9px;
-    padding: 2px 4px;
+  .sim-speed-tag:active {
+    transform: scale(0.92) !important;
+    background: rgba(0, 229, 255, 0.35) !important;
+    border-color: var(--accent-cyan) !important;
+    color: #ffffff !important;
   }
 
   /* --- BOTTOM TELEMETRY STRIP --- */
@@ -531,11 +544,26 @@
   }
 
   .hud-bottom-console .sim-speed-tag {
-    font-size: 9px !important;
-    padding: 2px 5px !important;
-    background: rgba(0, 229, 255, 0.14) !important;
-    border: 1px solid rgba(0, 229, 255, 0.35) !important;
-    border-radius: 5px !important;
+    height: 26px !important;
+    min-width: 30px !important;
+    font-size: 10px !important;
+    padding: 0 6px !important;
+    background: rgba(0, 229, 255, 0.16) !important;
+    border: 1px solid rgba(0, 229, 255, 0.4) !important;
+    border-radius: 6px !important;
+    color: var(--accent-cyan) !important;
+    cursor: pointer !important;
+    user-select: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+  }
+
+  .hud-bottom-console .sim-speed-tag:active {
+    transform: scale(0.92) !important;
+    background: rgba(0, 229, 255, 0.38) !important;
+    color: #ffffff !important;
   }
 
   /* Row 2: In-Flight Telemetry Strip */

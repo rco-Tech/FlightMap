@@ -268,6 +268,7 @@ export class ModalDialogs {
     modal.className = 'modal-backdrop';
 
     const currentSource = this.telemetryManager.getSource();
+    const currentSpeed = this.telemetryManager.getSimulationSpeed();
 
     // Fetch local IP & mobile URL from server
     let mobileUrl = `${window.location.origin}/mobile.html`;
@@ -351,11 +352,12 @@ export class ModalDialogs {
               </p>
               <div class="sim-speed-controls">
                 <span>SIM SPEED:</span>
-                <button class="speed-pill" data-speed="1">1x</button>
-                <button class="speed-pill" data-speed="5">5x</button>
-                <button class="speed-pill active" data-speed="10">10x</button>
-                <button class="speed-pill" data-speed="25">25x</button>
-                <button class="speed-pill" data-speed="50">50x</button>
+                <button class="speed-pill ${currentSpeed === 1 ? 'active' : ''}" data-speed="1">1x</button>
+                <button class="speed-pill ${currentSpeed === 2 ? 'active' : ''}" data-speed="2">2x</button>
+                <button class="speed-pill ${currentSpeed === 5 ? 'active' : ''}" data-speed="5">5x</button>
+                <button class="speed-pill ${currentSpeed === 10 ? 'active' : ''}" data-speed="10">10x</button>
+                <button class="speed-pill ${currentSpeed === 25 ? 'active' : ''}" data-speed="25">25x</button>
+                <button class="speed-pill ${currentSpeed === 50 ? 'active' : ''}" data-speed="50">50x</button>
               </div>
               <button class="btn-action" id="btn-enable-simulation">
                 ${currentSource === 'simulation' ? '✓ Currently Active' : 'Switch to Flight Simulation'}
@@ -446,6 +448,14 @@ export class ModalDialogs {
         target.classList.add('active');
         const speed = parseInt(target.dataset.speed || '10', 10);
         this.telemetryManager.setSimulationSpeed(speed);
+
+        const tag = document.getElementById('sim-speed-tag');
+        if (tag) tag.textContent = `${speed}x`;
+
+        const srcLabel = document.getElementById('gps-source-label');
+        if (srcLabel && this.telemetryManager.getSource() === 'simulation') {
+          srcLabel.textContent = `SIM ${speed}x`;
+        }
       });
     });
   }
