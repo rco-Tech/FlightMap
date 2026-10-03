@@ -124,23 +124,23 @@ export class TelemetryManager {
 
     // Default initial telemetry
     this.state = {
-      lat: 51.47,
-      lon: -0.45,
-      altitude: 38000,
-      groundSpeed: 485,
-      heading: 285,
+      lat: 52.4539,
+      lon: -1.7480,
+      altitude: 37000,
+      groundSpeed: 450,
+      heading: 110,
       pitch: 1.5,
       roll: 0.0,
       verticalSpeed: 0,
-      distanceTraveledNM: 1200,
-      distanceRemainingNM: 2250,
+      distanceTraveledNM: 418,
+      distanceRemainingNM: 777,
       progressFraction: 0.35,
-      eteSeconds: 16700,
-      eta: new Date(Date.now() + 16700 * 1000),
+      eteSeconds: 6200,
+      eta: new Date(Date.now() + 6200 * 1000),
       source: 'simulation',
       gpsAccuracyMeters: 3.5,
       satellites: 12,
-      atmosphere: AviationMath.calculateAtmosphere(38000, 485),
+      atmosphere: AviationMath.calculateAtmosphere(37000, 450),
       timestamp: Date.now()
     };
 

@@ -65,7 +65,7 @@ export class ModalDialogs {
             <div class="search-inputs-grid">
               <div class="input-group">
                 <label>ORIGIN (IATA/CITY)</label>
-                <input type="text" id="input-origin" placeholder="e.g. LHR or London" value="LHR" autocomplete="off" />
+                <input type="text" id="input-origin" placeholder="e.g. BHX or Birmingham" value="BHX" autocomplete="off" />
                 <div class="search-results" id="results-origin"></div>
               </div>
               <div class="input-group">

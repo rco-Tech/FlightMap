@@ -36,6 +36,10 @@ export class FlightPlanManager {
   public constructor() {}
 
   public static readonly DEFAULT_ROUTES: { flightNumber: string; airline: string; aircraft: string; from: string; to: string }[] = [
+    { flightNumber: 'W4 3002', airline: 'Wizz Air', aircraft: 'Airbus A321neo', from: 'BHX', to: 'OTP' },
+    { flightNumber: 'W4 3001', airline: 'Wizz Air', aircraft: 'Airbus A321neo', from: 'OTP', to: 'BHX' },
+    { flightNumber: 'RT101', airline: 'rTech Airways', aircraft: 'Gulfstream G650ER', from: 'BHX', to: 'OTP' },
+    { flightNumber: 'RT102', airline: 'rTech Airways', aircraft: 'Gulfstream G650ER', from: 'OTP', to: 'BHX' },
     { flightNumber: 'BA886', airline: 'British Airways', aircraft: 'Boeing 787-9 Dreamliner', from: 'LHR', to: 'OTP' },
     { flightNumber: 'BA117', airline: 'British Airways', aircraft: 'Boeing 787-9 Dreamliner', from: 'LHR', to: 'JFK' },
     { flightNumber: 'EK215', airline: 'Emirates', aircraft: 'Airbus A380-800', from: 'DXB', to: 'LAX' },

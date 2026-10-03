@@ -37,14 +37,14 @@ export class FlightHud {
         <!-- TOP IFE FLIGHT HEADER -->
         <header class="hud-top-bar">
           <div class="flight-badge">
-            <span class="airline-tag" id="hud-airline">British Airways</span>
-            <span class="flight-no" id="hud-flight-no">BA-886</span>
+            <span class="airline-tag" id="hud-airline">Wizz Air</span>
+            <span class="flight-no" id="hud-flight-no">W4-3002</span>
           </div>
 
           <div class="route-tracker">
             <div class="airport-origin">
-              <span class="iata" id="hud-origin-iata">LHR</span>
-              <span class="city" id="hud-origin-city">London</span>
+              <span class="iata" id="hud-origin-iata">BHX</span>
+              <span class="city" id="hud-origin-city">Birmingham</span>
             </div>
 
             <div class="progress-track-wrapper">
@@ -61,7 +61,7 @@ export class FlightHud {
                   <span class="time-sep">•</span>
                   <span class="eta-val" id="hud-eta-val">ETA --:--</span>
                 </span>
-                <span class="metric right" id="hud-distance-remaining">1,135 NM</span>
+                <span class="metric right" id="hud-distance-remaining">1,195 NM</span>
               </div>
             </div>
 
@@ -232,8 +232,8 @@ export class FlightHud {
 
             <div class="telemetry-card clocks-card">
               <div class="clock-col">
-                <span class="label" id="lbl-origin-clock">LHR (ORIGIN)</span>
-                <span class="clock-val" id="val-origin-clock">14:15</span>
+                <span class="label" id="lbl-origin-clock">BHX (ORIGIN)</span>
+                <span class="clock-val" id="val-origin-clock">--:--</span>
               </div>
               <div class="clock-col">
                 <span class="label">UTC / IN-FLIGHT</span>

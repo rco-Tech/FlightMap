@@ -182,13 +182,13 @@ async function bootstrap() {
     });
 
     const initialPlan = await flightPlanManager.createPlan(
-      'LHR',
+      'BHX',
       'OTP',
-      'BA-886',
-      'British Airways',
-      'Boeing 787-9 Dreamliner',
-      38000,
-      485
+      'W4-3002',
+      'Wizz Air',
+      'Airbus A321neo',
+      37000,
+      450
     );
 
     globeScene.updateFlightPlanVisuals(initialPlan);

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Airport Database Service
  * Loads and caches 7,900+ world commercial airports for offline search and flight planning.
  */
@@ -99,6 +99,8 @@ export class AirportDatabase {
 
   private populateFallbackAirports(): void {
     const fallbacks: Airport[] = [
+      { iata: 'BHX', icao: 'EGBB', name: 'Birmingham Airport', city: 'Birmingham', country: 'United Kingdom', lat: 52.4539, lon: -1.7480, elevation: 327, tz: 'Europe/London' },
+      { iata: 'OTP', icao: 'LROP', name: 'Henri Coandă International', city: 'Bucharest', country: 'Romania', lat: 44.5722, lon: 26.1022, elevation: 314, tz: 'Europe/Bucharest' },
       { iata: 'LHR', icao: 'EGLL', name: 'London Heathrow', city: 'London', country: 'United Kingdom', lat: 51.4700, lon: -0.4543, elevation: 83, tz: 'Europe/London' },
       { iata: 'JFK', icao: 'KJFK', name: 'John F. Kennedy Intl', city: 'New York', country: 'United States', lat: 40.6413, lon: -73.7781, elevation: 13, tz: 'America/New_York' },
       { iata: 'DXB', icao: 'OMDB', name: 'Dubai International', city: 'Dubai', country: 'United Arab Emirates', lat: 25.2532, lon: 55.3657, elevation: 62, tz: 'Asia/Dubai' },
