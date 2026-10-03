@@ -203,42 +203,52 @@ export class FlightHud {
 
           <!-- BOTTOM TELEMETRY STRIP (ROW 2 ON MOBILE) -->
           <footer class="hud-bottom-bar">
+            <!-- 1. GROUND SPEED -->
             <div class="telemetry-card ground-speed-card clickable-card" id="card-groundspeed" title="Ground Speed (Click to open Settings / Toggle Units: Maritime / Metric / Imperial)">
               <div class="card-top-row">
                 <span class="label">GROUND SPEED</span>
                 <span class="unit-system-tag" id="tag-speed-system">${this.unitManager.getSystemLabel()}</span>
               </div>
-              <div class="value-row">
-                <span class="big-val" id="val-groundspeed">485</span>
-                <span class="unit" id="unit-groundspeed">KTS</span>
-                <span class="sub-val" id="val-speed-kmh">898 KM/H</span>
+              <div class="telemetry-body-center">
+                <div class="primary-val-row">
+                  <span class="big-val" id="val-groundspeed">485</span>
+                  <span class="unit" id="unit-groundspeed">KTS</span>
+                </div>
+                <div class="sub-val" id="val-speed-kmh">898 KM/H</div>
               </div>
             </div>
 
+            <!-- 2. OUTSIDE AIR TEMP -->
             <div class="telemetry-card">
               <div class="card-top-row">
                 <span class="label">OUTSIDE AIR TEMP (OAT)</span>
                 <span class="card-mini-badge" id="lbl-isa-dev">ISA STD</span>
               </div>
-              <div class="value-row">
-                <span class="big-val" id="val-oat-c">-52</span>
-                <span class="unit" id="unit-oat">&deg;C</span>
-                <span class="sub-val" id="val-oat-f">-61&deg;F</span>
+              <div class="telemetry-body-center">
+                <div class="primary-val-row">
+                  <span class="big-val" id="val-oat-c">-52</span>
+                  <span class="unit" id="unit-oat">&deg;C</span>
+                </div>
+                <div class="sub-val" id="val-oat-f">-61&deg;F</div>
               </div>
             </div>
 
+            <!-- 3. TRUE TRACK / HEADING -->
             <div class="telemetry-card">
               <div class="card-top-row">
                 <span class="label">TRUE TRACK / HEADING</span>
                 <span class="card-mini-badge">GYRO</span>
               </div>
-              <div class="value-row">
-                <span class="big-val" id="val-heading">285&deg;</span>
-                <span class="unit">TRUE</span>
-                <span class="sub-val" id="val-pitch-roll">+1.5&deg; / 0.0&deg;</span>
+              <div class="telemetry-body-center">
+                <div class="primary-val-row">
+                  <span class="big-val" id="val-heading">285&deg;</span>
+                  <span class="unit">TRUE</span>
+                </div>
+                <div class="sub-val" id="val-pitch-roll">+1.5&deg; / 0.0&deg;</div>
               </div>
             </div>
 
+            <!-- 4. COORDINATES (2-ROW DMS) -->
             <div class="telemetry-card coord-card" id="card-coordinates" title="WGS84 Coordinates: Latitude (N/S) & Longitude (E/W)">
               <div class="card-top-row">
                 <span class="label">COORDINATES</span>
@@ -259,22 +269,56 @@ export class FlightHud {
               <span class="coord-val" id="val-coordinates" style="display: none;">51°28'12"N 000°27'42"W</span>
             </div>
 
+            <!-- 5. FLIGHT ROUTE CLOCKS & SOLAR LOCAL POSITION -->
             <div class="telemetry-card clocks-card">
-              <div class="clock-col">
-                <span class="label" id="lbl-origin-clock">BHX (ORIGIN)</span>
-                <span class="clock-val" id="val-origin-clock">--:--</span>
+              <div class="flight-clocks-section">
+                <div class="card-top-row">
+                  <span class="label">ROUTE CLOCKS</span>
+                </div>
+                <div class="clocks-grid">
+                  <div class="clock-col">
+                    <div class="clock-header">
+                      <span class="clock-iata" id="lbl-origin-iata">BHX</span>
+                      <span class="clock-tag">DEP</span>
+                    </div>
+                    <span class="clock-val" id="val-origin-clock">--:--</span>
+                  </div>
+                  <div class="clock-col is-utc">
+                    <div class="clock-header">
+                      <span class="clock-iata">UTC</span>
+                      <span class="clock-tag">ZULU</span>
+                    </div>
+                    <span class="clock-val" id="val-utc-clock">13:15</span>
+                  </div>
+                  <div class="clock-col">
+                    <div class="clock-header">
+                      <span class="clock-iata" id="lbl-dest-iata">OTP</span>
+                      <span class="clock-tag">ARR</span>
+                    </div>
+                    <span class="clock-val" id="val-dest-clock">14:45</span>
+                  </div>
+                </div>
               </div>
-              <div class="clock-col">
-                <span class="label">UTC / IN-FLIGHT</span>
-                <span class="clock-val" id="val-utc-clock">13:15</span>
-              </div>
-              <div class="clock-col">
-                <span class="label" id="lbl-dest-clock">OTP (DEST)</span>
-                <span class="clock-val" id="val-dest-clock">14:45</span>
-              </div>
-              <div class="clock-col solar-col" id="col-solar-status" title="Local Solar Phase & Elevation Angle (Click to configure Day/Night map)" style="cursor: pointer;">
-                <span class="label">SOLAR / LOCAL</span>
-                <span class="clock-val solar-badge" id="val-solar-status">☀️ DAY</span>
+
+              <div class="solar-section clickable-card" id="col-solar-status" title="Local Solar Phase & Elevation (Click to configure Day/Night map)">
+                <div class="card-top-row">
+                  <span class="label">SOLAR</span>
+                  <span class="card-mini-badge" id="badge-solar-mode">LIVE</span>
+                </div>
+                <div class="solar-body-center">
+                  <div class="solar-phase-row">
+                    <span class="solar-phase-icon" id="solar-phase-icon">☀️</span>
+                    <span class="solar-phase-name" id="solar-phase-name">DAY</span>
+                  </div>
+                  <div class="solar-elev-badge" id="solar-elev-badge">
+                    <span class="elev-tag">ELEV</span>
+                    <span class="elev-val" id="solar-elev-val">+42.0°</span>
+                  </div>
+                </div>
+                <!-- Legacy/fallback hooks for backward compatibility -->
+                <span id="lbl-origin-clock" style="display: none;"></span>
+                <span id="lbl-dest-clock" style="display: none;"></span>
+                <span id="val-solar-status" style="display: none;">☀️ DAY</span>
               </div>
             </div>
           </footer>
@@ -452,6 +496,8 @@ export class FlightHud {
     setText('hud-origin-city', plan.origin.city);
     setText('hud-dest-iata', plan.destination.iata);
     setText('hud-dest-city', plan.destination.city);
+    setText('lbl-origin-iata', plan.origin.iata);
+    setText('lbl-dest-iata', plan.destination.iata);
     setText('lbl-origin-clock', `${plan.origin.iata} (ORIGIN)`);
     setText('lbl-dest-clock', `${plan.destination.iata} (DEST)`);
   }
@@ -638,7 +684,16 @@ export class FlightHud {
         solarBtnIcon.textContent = solarInfo.phaseIcon;
       }
       const elevSign = solarInfo.elevationDeg > 0 ? '+' : '';
-      setText('val-solar-status', `${solarInfo.phaseIcon} ${solarInfo.phase === 'day' ? 'DAY' : solarInfo.phase === 'night' ? 'NIGHT' : 'TWILIGHT'} (${elevSign}${solarInfo.elevationDeg}°)`);
+      const phaseName = solarInfo.phase === 'day' ? 'DAY' : solarInfo.phase === 'night' ? 'NIGHT' : 'TWILIGHT';
+      setText('solar-phase-icon', solarInfo.phaseIcon);
+      setText('solar-phase-name', phaseName);
+      setText('solar-elev-val', `${elevSign}${solarInfo.elevationDeg.toFixed(1)}°`);
+      setText('val-solar-status', `${solarInfo.phaseIcon} ${phaseName} (${elevSign}${solarInfo.elevationDeg}°)`);
+
+      const solarModeBadge = document.getElementById('badge-solar-mode');
+      if (solarModeBadge) {
+        solarModeBadge.textContent = this.globeScene.solarMode === 'sim' ? 'SIM' : 'LIVE';
+      }
     }
   }
 

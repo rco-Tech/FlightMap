@@ -189,54 +189,99 @@
     transform-origin: top left;
   }
 
-  /* --- CAMERA PANEL: SLEEK COMPACT DOCK --- */
+  /* --- CAMERA PANEL: SLEEK COMPACT 1-ROW DOCK --- */
   .hud-right-camera-panel {
-    width: auto;
-    padding: 4px 8px;
-    gap: 4px;
+    position: absolute;
+    top: calc(env(safe-area-inset-top) + 48px);
+    right: 12px;
+    width: auto !important;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 3px 6px !important;
+    gap: 5px !important;
     backdrop-filter: blur(16px);
-    background: rgba(8, 14, 28, 0.78);
-    border: 1px solid rgba(0, 229, 255, 0.25);
-    border-radius: 24px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    background: rgba(8, 14, 28, 0.85);
+    border: 1px solid rgba(0, 229, 255, 0.28);
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.55);
+    z-index: 50;
   }
 
   .panel-header {
-    display: none;
+    display: none !important;
   }
 
   .camera-buttons-group {
-    flex-direction: row;
-    align-items: center;
-    gap: 4px;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 3px !important;
   }
 
   .cam-btn {
-    padding: 6px 8px;
-    border-radius: 16px;
-    font-size: 10px;
+    padding: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 8px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(14, 23, 42, 0.65) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12) !important;
     gap: 0;
   }
 
   .cam-btn .cam-icon {
-    font-size: 14px;
+    font-size: 14px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .cam-btn span:not(.cam-icon) {
-    display: none;
+    display: none !important;
   }
 
   .sim-quick-bar {
-    border-top: none;
-    padding-top: 0;
-    gap: 4px;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 5px !important;
+    border-top: none !important;
+    border-left: 1px solid rgba(255, 255, 255, 0.18) !important;
+    padding-top: 0 !important;
+    padding-left: 6px !important;
+    margin: 0 !important;
   }
 
   .sim-ctrl-btn {
-    width: 26px;
-    height: 26px;
-    font-size: 10px;
-    border-radius: 6px;
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 28px !important;
+    border-radius: 6px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(14, 23, 42, 0.65) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+  }
+
+  .sim-speed-tag {
+    height: 26px !important;
+    padding: 0 6px !important;
+    border-radius: 5px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    background: rgba(0, 229, 255, 0.14) !important;
+    border: 1px solid rgba(0, 229, 255, 0.35) !important;
+    color: var(--accent-cyan) !important;
   }
 
   .sim-speed-tag {
@@ -537,7 +582,7 @@
   }
 
   .hud-bottom-console .telemetry-card .big-val {
-    font-size: 14px !important;
+    font-size: 15px !important;
   }
 
   .hud-bottom-console .telemetry-card .unit {
@@ -545,7 +590,7 @@
   }
 
   .hud-bottom-console .telemetry-card .sub-val {
-    font-size: 9px !important;
+    font-size: 8.5px !important;
   }
 
   .hud-bottom-console .telemetry-card .coord-val {
@@ -553,17 +598,39 @@
   }
 
   .hud-bottom-console .clocks-card {
-    min-width: 220px !important;
+    min-width: 260px !important;
     gap: 6px !important;
+    padding: 4px 6px !important;
+  }
+
+  .hud-bottom-console .clock-iata {
+    font-size: 9.5px !important;
+  }
+
+  .hud-bottom-console .clock-tag {
+    font-size: 7px !important;
   }
 
   .hud-bottom-console .clock-val {
     font-size: 11px !important;
   }
+
+  .hud-bottom-console .solar-phase-icon {
+    font-size: 11px !important;
+  }
+
+  .hud-bottom-console .solar-phase-name {
+    font-size: 9.5px !important;
+  }
+
+  .hud-bottom-console .solar-elev-badge {
+    font-size: 8.5px !important;
+    padding: 1px 4px !important;
+  }
 }
 
-/* LANDSCAPE PHONES: Un-nest bottom console and give maximum vertical space to map */
-@media (orientation: landscape) {
+/* LANDSCAPE PHONES & TOUCH: Un-nest bottom console and give maximum vertical space to map */
+@media (max-width: 900px) and (orientation: landscape), (pointer: coarse) and (orientation: landscape) {
   .hud-bottom-console {
     display: contents !important;
   }

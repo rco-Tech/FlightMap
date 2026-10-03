@@ -670,24 +670,40 @@ html, body {
   border-color: var(--accent-cyan);
 }
 
-.telemetry-card .value-row {
+/* Centered Telemetry Card Body */
+.telemetry-body-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  text-align: center;
+  gap: 2px;
+  margin: auto 0;
+}
+
+.primary-val-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
 }
 
 .telemetry-card .big-val {
   font-family: var(--font-mono);
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.5px;
+  line-height: 1.1;
 }
 
 .telemetry-card .unit {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--accent-cyan);
+  letter-spacing: 0.5px;
 }
 
 .telemetry-card .sub-val {
@@ -695,7 +711,9 @@ html, body {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-dim);
-  margin-left: auto;
+  margin: 0;
+  text-align: center;
+  letter-spacing: 0.3px;
 }
 
 /* --- 2-ROW COORDINATES DISPLAY --- */
@@ -766,45 +784,157 @@ html, body {
   letter-spacing: 0.5px;
 }
 
+/* --- FLIGHT ROUTE CLOCKS & SOLAR LOCAL POSITION --- */
 .clocks-card {
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
+  align-items: stretch;
+  gap: 10px;
+  padding: 6px 10px;
+}
+
+.flight-clocks-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1.4;
+  min-width: 0;
+  gap: 2px;
+}
+
+.clocks-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  align-items: center;
+  flex: 1;
 }
 
 .clock-col {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  padding: 3px 2px;
+  transition: all 0.15s ease;
+}
+
+.clock-col:hover {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(0, 229, 255, 0.25);
+}
+
+.clock-col.is-utc {
+  background: rgba(0, 229, 255, 0.06);
+  border-color: rgba(0, 229, 255, 0.2);
+}
+
+.clock-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.clock-iata {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--accent-cyan);
+  letter-spacing: 0.5px;
+}
+
+.clock-tag {
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--text-dim);
+  text-transform: uppercase;
 }
 
 .clock-val {
   font-family: var(--font-mono);
-  font-size: 17px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #ffffff;
+  letter-spacing: 0.5px;
+  line-height: 1;
 }
 
-.solar-col {
-  padding-left: 14px;
-  border-left: 1px solid rgba(255, 255, 255, 0.08);
+.solar-section {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  padding-left: 8px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  gap: 2px;
+  cursor: pointer;
   transition: all 0.2s ease;
 }
 
-.solar-col:hover .label {
+.solar-section:hover {
+  border-left-color: var(--accent-cyan);
+}
+
+.solar-section:hover .solar-phase-name {
   color: var(--accent-cyan);
 }
 
-.solar-col:hover .solar-badge {
-  color: #38bdf8;
-  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+.solar-body-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  gap: 3px;
+  margin: auto 0;
 }
 
-.solar-badge {
-  color: #f8fafc;
+.solar-phase-row {
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.solar-phase-icon {
+  font-size: 13px;
+}
+
+.solar-phase-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.solar-elev-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.4px;
+}
+
+.solar-elev-badge .elev-tag {
+  color: var(--text-dim);
+  font-size: 8px;
 }
 
 /* --- MODAL DIALOGS --- */
