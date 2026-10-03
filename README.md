@@ -1,7 +1,7 @@
 # ✈️ rTech Systems // FlightMap 3D
 ### Next-Generation Offline In-Flight Entertainment (IFE) Moving Map & Telemetry HUD
 
-[![Version](https://img.shields.io/badge/version-1.0.9--stable-00e5ff.svg?style=flat-square)](https://github.com/rco-Tech/FlightMap)
+[![Version](https://img.shields.io/badge/version-1.2.0--stable-00e5ff.svg?style=flat-square)](https://github.com/rco-Tech/FlightMap)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Engine](https://img.shields.io/badge/3D_Engine-Three.js_WebGL2-green.svg?style=flat-square)](https://threejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
