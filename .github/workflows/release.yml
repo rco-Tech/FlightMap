@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build offline bundle
+        run: npm run build
+
+      - name: Package offline bundle
+        run: |
+          cd dist
+          zip -r "../flightmap-offline-${{ github.ref_name }}.zip" .
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          body: |
+            **Offline bundle:** download `flightmap-offline-${{ github.ref_name }}.zip`, unzip it,
+            and serve the folder with any static web server.
+
+            For the full offline experience with the GNSS telemetry hub, use the source repo:
+            `npm install && npm start`.
+          files: flightmap-offline-${{ github.ref_name }}.zip
