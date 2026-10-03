@@ -291,7 +291,15 @@ function setupWebSocket(wss) {
           }
         }
 
-        // Broadcast telemetry or camera commands to all other connected clients
+        if (data.type === 'flight_plan_command') {
+          console.log(`[FlightPlan] Remote route command: ${data.from} -> ${data.to} (${data.flightNumber || 'custom'})`);
+        }
+
+        if (data.type === 'flight_plan_active') {
+          console.log(`[FlightPlan] Active flight plan updated: ${data.from} -> ${data.to} (${data.flightNumber})`);
+        }
+
+        // Broadcast telemetry, camera commands, or flight plans to all other connected clients
         for (const client of clients) {
           if (client !== ws && client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(data));

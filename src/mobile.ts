@@ -1,4 +1,5 @@
 import './mobile.css';
+import { FlightPlanManager, type RoutePreset } from './telemetry/FlightPlan';
 
 type ConnectionState = 'laptop_connected' | 'relay_connected' | 'connecting' | 'offline';
 
@@ -39,11 +40,20 @@ class MobileController {
   private simSpeed: number = 495;
   private simHdg: number = 285;
 
+  // Remote Flight Plan & Route Selector
+  private flightPlanManager: FlightPlanManager = FlightPlanManager.getInstance();
+  private activeRouteKey: string = 'BHX-OTP';
+  private isFlightPlanOpen: boolean = false;
+
   constructor() {
     this.targetHost = this.resolveTargetHost();
     this.render();
     this.initWebSocket();
     this.initEvents();
+    this.renderMobilePresets();
+    this.flightPlanManager.onFavoritesChanged(() => {
+      this.renderMobilePresets();
+    });
     this.checkSecureContext();
   }
 
@@ -274,6 +284,40 @@ class MobileController {
             <button class="cam-pill" data-cam="tactical">🗺️ 2D Nav</button>
           </div>
         </div>
+
+        <!-- Collapsible Remote Flight Plan & Route Selector -->
+        <div class="remote-fp-card" id="card-remote-flightplan">
+          <div class="remote-fp-header" id="btn-toggle-remote-fp">
+            <div class="remote-fp-header-left">
+              <span class="remote-fp-icon">✈️</span>
+              <div>
+                <div class="remote-fp-title">FLIGHT PLAN & ROUTE SELECTOR</div>
+                <div class="remote-fp-sub" id="disp-active-route">Active: W4 3002 (BHX &rarr; OTP)</div>
+              </div>
+            </div>
+            <span class="remote-fp-chevron" id="chevron-remote-fp">▼</span>
+          </div>
+
+          <div class="remote-fp-body collapsed" id="body-remote-fp">
+            <div class="remote-fp-section-title">FAVORITE ROUTES & PRESETS</div>
+            <div class="remote-fp-presets-grid" id="remote-presets-list">
+              <!-- Dynamically populated presets -->
+            </div>
+
+            <div class="remote-fp-section-title">CUSTOM ROUTE</div>
+            <div class="remote-fp-inputs-row">
+              <input type="text" class="remote-fp-input" id="remote-input-from" placeholder="FROM" value="BHX" maxlength="4" autocomplete="off" />
+              <span class="remote-fp-arrow">&rarr;</span>
+              <input type="text" class="remote-fp-input" id="remote-input-to" placeholder="TO" value="OTP" maxlength="4" autocomplete="off" />
+            </div>
+
+            <div class="remote-fp-actions-row">
+              <button class="btn-remote-fav" id="btn-mobile-save-fav">⭐ Save Fav</button>
+              <button class="btn-remote-send" id="btn-mobile-send-route">🚀 Send to Laptop</button>
+            </div>
+            <div class="remote-fp-feedback" id="remote-fp-feedback"></div>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -392,6 +436,17 @@ class MobileController {
 
     if (msg.type === 'camera_ack' || msg.type === 'camera_active') {
       if (msg.mode) this.setActiveCameraPill(msg.mode);
+    }
+
+    if (msg.type === 'flight_plan_active' || msg.type === 'flight_plan_ack') {
+      if (msg.from && msg.to) {
+        this.activeRouteKey = `${msg.from.toUpperCase()}-${msg.to.toUpperCase()}`;
+        const disp = document.getElementById('disp-active-route');
+        if (disp) {
+          disp.textContent = `Active: ${msg.flightNumber || msg.from + ' → ' + msg.to} (${msg.from} → ${msg.to})`;
+        }
+        this.renderMobilePresets();
+      }
     }
   }
 
@@ -632,6 +687,136 @@ class MobileController {
 
     // Default active camera to Globe
     this.setActiveCameraPill('orbit');
+
+    // Toggle collapsible remote flight plan selector
+    document.getElementById('btn-toggle-remote-fp')?.addEventListener('click', () => {
+      this.isFlightPlanOpen = !this.isFlightPlanOpen;
+      const body = document.getElementById('body-remote-fp');
+      const chevron = document.getElementById('chevron-remote-fp');
+      if (body && chevron) {
+        if (this.isFlightPlanOpen) {
+          body.classList.remove('collapsed');
+          chevron.classList.add('expanded');
+        } else {
+          body.classList.add('collapsed');
+          chevron.classList.remove('expanded');
+        }
+      }
+    });
+
+    // Send custom route button
+    document.getElementById('btn-mobile-send-route')?.addEventListener('click', () => {
+      const from = (document.getElementById('remote-input-from') as HTMLInputElement)?.value.trim().toUpperCase();
+      const to = (document.getElementById('remote-input-to') as HTMLInputElement)?.value.trim().toUpperCase();
+      if (!from || !to || from === to) {
+        this.showFpFeedback('Please enter valid 3-letter IATA codes (e.g. BHX, OTP)', 'warn');
+        return;
+      }
+      this.sendFlightPlan(from, to, `${from}-${to}`, 'Custom Route', 'Airbus A321neo');
+    });
+
+    // Save custom favorite button
+    document.getElementById('btn-mobile-save-fav')?.addEventListener('click', () => {
+      const from = (document.getElementById('remote-input-from') as HTMLInputElement)?.value.trim().toUpperCase();
+      const to = (document.getElementById('remote-input-to') as HTMLInputElement)?.value.trim().toUpperCase();
+      if (!from || !to || from === to) {
+        this.showFpFeedback('Enter valid IATAs before saving', 'warn');
+        return;
+      }
+      this.flightPlanManager.saveFavoriteRoute({
+        from,
+        to,
+        flightNumber: `${from}-${to}`,
+        airline: `${from} &rarr; ${to}`,
+        aircraft: 'Airbus A321neo'
+      });
+      this.showFpFeedback(`✓ Saved ${from} &rarr; ${to} to favorites!`, 'success');
+      this.renderMobilePresets();
+    });
+  }
+
+  private renderMobilePresets(): void {
+    const container = document.getElementById('remote-presets-list');
+    if (!container) return;
+    const routes: RoutePreset[] = this.flightPlanManager.getFavoriteRoutes();
+    container.innerHTML = routes
+      .map((r) => {
+        const key = `${r.from.toUpperCase()}-${r.to.toUpperCase()}`;
+        const isActive = this.activeRouteKey === key;
+        return `
+          <button class="mobile-preset-pill ${isActive ? 'active' : ''} ${r.isCustom ? 'custom-fav' : ''}" data-from="${r.from}" data-to="${r.to}" data-flight="${r.flightNumber}" data-airline="${r.airline}" data-aircraft="${r.aircraft}" data-alt="${r.cruiseAltitudeFt || 37000}" data-speed="${r.cruiseSpeedKnots || 450}">
+            <div class="m-pill-top">
+              <span class="m-pill-flight">${r.flightNumber}</span>
+              ${r.isCustom ? '<span class="m-pill-star">⭐</span>' : ''}
+            </div>
+            <div class="m-pill-route">${r.from} &rarr; ${r.to}</div>
+            <div class="m-pill-airline">${r.airline}</div>
+          </button>
+        `;
+      })
+      .join('');
+
+    container.querySelectorAll('.mobile-preset-pill').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const target = e.currentTarget as HTMLElement;
+        const from = target.dataset.from!;
+        const to = target.dataset.to!;
+        const flightNumber = target.dataset.flight || `${from}-${to}`;
+        const airline = target.dataset.airline || 'rTech Airways';
+        const aircraft = target.dataset.aircraft || 'Airbus A321neo';
+        const alt = parseInt(target.dataset.alt || '37000', 10);
+        const speed = parseInt(target.dataset.speed || '450', 10);
+        this.sendFlightPlan(from, to, flightNumber, airline, aircraft, alt, speed);
+      });
+    });
+  }
+
+  private sendFlightPlan(from: string, to: string, flightNumber: string, airline: string, aircraft: string, alt: number = 37000, speed: number = 450): void {
+    const f = from.trim().toUpperCase();
+    const t = to.trim().toUpperCase();
+    this.activeRouteKey = `${f}-${t}`;
+    this.renderMobilePresets();
+
+    const disp = document.getElementById('disp-active-route');
+    if (disp) {
+      disp.textContent = `Active: ${flightNumber} (${f} → ${t})`;
+    }
+
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(
+          JSON.stringify({
+            type: 'flight_plan_command',
+            from: f,
+            to: t,
+            flightNumber,
+            airline,
+            aircraft,
+            cruiseAltitude: alt,
+            cruiseSpeed: speed,
+            timestamp: Date.now()
+          })
+        );
+        this.showFpFeedback(`🚀 Sent ${flightNumber} (${f}&rarr;${t}) to Laptop 3D Map!`, 'success');
+      } catch (e) {
+        this.showFpFeedback('WebSocket transmission failed', 'error');
+      }
+    } else {
+      this.showFpFeedback('Laptop is currently offline; connect to sync', 'warn');
+    }
+  }
+
+  private showFpFeedback(msg: string, type: 'success' | 'warn' | 'error'): void {
+    const el = document.getElementById('remote-fp-feedback');
+    if (!el) return;
+    el.innerHTML = msg;
+    el.className = `remote-fp-feedback ${type}`;
+    setTimeout(() => {
+      if (el.innerHTML === msg) {
+        el.className = 'remote-fp-feedback';
+        el.innerHTML = '';
+      }
+    }, 3500);
   }
 
   private setActiveCameraPill(mode: string): void {

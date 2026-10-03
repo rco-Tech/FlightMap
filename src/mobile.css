@@ -721,3 +721,239 @@ input:checked + .toggle-slider:before {
   background: var(--accent-cyan, #00e5ff);
   color: #02060d;
 }
+
+/* Remote Flight Plan & Route Selector */
+.remote-fp-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.remote-fp-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remote-fp-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.remote-fp-icon {
+  font-size: 18px;
+}
+
+.remote-fp-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.remote-fp-sub {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan, #00e5ff);
+  margin-top: 2px;
+}
+
+.remote-fp-chevron {
+  font-size: 12px;
+  color: var(--text-muted);
+  transition: transform 0.25s ease;
+}
+
+.remote-fp-chevron.expanded {
+  transform: rotate(180deg);
+  color: var(--accent-cyan);
+}
+
+.remote-fp-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.remote-fp-body.collapsed {
+  display: none;
+}
+
+.remote-fp-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.remote-fp-presets-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.mobile-preset-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 10px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+}
+
+.mobile-preset-pill:active {
+  transform: scale(0.98);
+}
+
+.mobile-preset-pill.active {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.22), rgba(0, 153, 204, 0.38));
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+}
+
+.mobile-preset-pill.custom-fav {
+  border-color: rgba(255, 176, 0, 0.35);
+}
+
+.mobile-preset-pill.custom-fav.active {
+  border-color: var(--accent-gold, #ffb000);
+  box-shadow: 0 0 10px rgba(255, 176, 0, 0.35);
+}
+
+.m-pill-top {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.m-pill-flight {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.m-pill-star {
+  font-size: 10px;
+}
+
+.m-pill-route {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 2px 0;
+}
+
+.m-pill-airline {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.remote-fp-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.remote-fp-input {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 10px 8px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.25);
+  border-radius: 10px;
+  color: #ffffff;
+  outline: none;
+}
+
+.remote-fp-input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+}
+
+.remote-fp-arrow {
+  color: var(--accent-cyan);
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.remote-fp-actions-row {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-remote-fav {
+  padding: 10px 14px;
+  background: rgba(255, 176, 0, 0.12);
+  border: 1px solid rgba(255, 176, 0, 0.4);
+  color: #fde047;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-remote-fav:active {
+  background: rgba(255, 176, 0, 0.25);
+}
+
+.btn-remote-send {
+  flex: 1;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(0, 153, 204, 0.35));
+  border: 1px solid var(--accent-cyan);
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-remote-send:active {
+  background: var(--accent-cyan);
+  color: #02060d;
+}
+
+.remote-fp-feedback {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  min-height: 16px;
+  line-height: 1.4;
+  transition: all 0.2s ease;
+}
+
+.remote-fp-feedback.success {
+  color: #86efac;
+}
+
+.remote-fp-feedback.warn {
+  color: #fde047;
+}
+
+.remote-fp-feedback.error {
+  color: #fda4af;
+}

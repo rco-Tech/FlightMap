@@ -21,10 +21,24 @@ export interface FlightPlanData {
   waypoints: FlightWaypoint[];
 }
 
+export interface RoutePreset {
+  flightNumber: string;
+  airline: string;
+  aircraft: string;
+  from: string;
+  to: string;
+  cruiseAltitudeFt?: number;
+  cruiseSpeedKnots?: number;
+  isCustom?: boolean;
+}
+
 export class FlightPlanManager {
   private static instance: FlightPlanManager;
   private activePlan: FlightPlanData | null = null;
   private listeners: ((plan: FlightPlanData) => void)[] = [];
+  private favoritesListeners: ((routes: RoutePreset[]) => void)[] = [];
+
+  public static readonly FAVORITES_STORAGE_KEY = 'flightmap_favorite_routes';
 
   public static getInstance(): FlightPlanManager {
     if (!FlightPlanManager.instance) {
@@ -35,7 +49,7 @@ export class FlightPlanManager {
 
   public constructor() {}
 
-  public static readonly DEFAULT_ROUTES: { flightNumber: string; airline: string; aircraft: string; from: string; to: string }[] = [
+  public static readonly DEFAULT_ROUTES: RoutePreset[] = [
     { flightNumber: 'W4 3002', airline: 'Wizz Air', aircraft: 'Airbus A321neo', from: 'BHX', to: 'OTP' },
     { flightNumber: 'W4 3001', airline: 'Wizz Air', aircraft: 'Airbus A321neo', from: 'OTP', to: 'BHX' },
     { flightNumber: 'RT101', airline: 'rTech Airways', aircraft: 'Gulfstream G650ER', from: 'BHX', to: 'OTP' },
@@ -48,6 +62,112 @@ export class FlightPlanManager {
     { flightNumber: 'AF006', airline: 'Air France', aircraft: 'Airbus A350-900', from: 'CDG', to: 'JFK' },
     { flightNumber: 'QF1', airline: 'Qantas Airways', aircraft: 'Boeing 787-9', from: 'SYD', to: 'LHR' }
   ];
+
+  public getFavoriteRoutes(): RoutePreset[] {
+    const custom = this.loadCustomFavorites();
+    const defaults: RoutePreset[] = FlightPlanManager.DEFAULT_ROUTES.map((r) => ({
+      ...r,
+      isCustom: false
+    }));
+
+    const seen = new Set<string>();
+    const result: RoutePreset[] = [];
+
+    for (const r of custom) {
+      const key = `${r.from.toUpperCase()}-${r.to.toUpperCase()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(r);
+      }
+    }
+
+    for (const r of defaults) {
+      const key = `${r.from.toUpperCase()}-${r.to.toUpperCase()}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        result.push(r);
+      }
+    }
+
+    return result;
+  }
+
+  public saveFavoriteRoute(route: RoutePreset): boolean {
+    const from = route.from.trim().toUpperCase();
+    const to = route.to.trim().toUpperCase();
+    if (!from || !to || from === to) return false;
+
+    const list = this.loadCustomFavorites();
+    const existingIndex = list.findIndex(
+      (r) => r.from.toUpperCase() === from && r.to.toUpperCase() === to
+    );
+
+    const newFav: RoutePreset = {
+      flightNumber: route.flightNumber?.trim() || `${from}-${to}`,
+      airline: route.airline?.trim() || 'Custom Route',
+      aircraft: route.aircraft?.trim() || 'Boeing 787-9',
+      from,
+      to,
+      cruiseAltitudeFt: route.cruiseAltitudeFt || 38000,
+      cruiseSpeedKnots: route.cruiseSpeedKnots || 485,
+      isCustom: true
+    };
+
+    if (existingIndex >= 0) {
+      list[existingIndex] = newFav;
+    } else {
+      list.unshift(newFav);
+    }
+
+    this.saveCustomFavorites(list);
+    this.notifyFavoritesListeners();
+    return true;
+  }
+
+  public removeFavoriteRoute(from: string, to: string): boolean {
+    const f = from.trim().toUpperCase();
+    const t = to.trim().toUpperCase();
+    const list = this.loadCustomFavorites();
+    const filtered = list.filter((r) => !(r.from.toUpperCase() === f && r.to.toUpperCase() === t));
+    if (filtered.length !== list.length) {
+      this.saveCustomFavorites(filtered);
+      this.notifyFavoritesListeners();
+      return true;
+    }
+    return false;
+  }
+
+  public onFavoritesChanged(callback: (routes: RoutePreset[]) => void): () => void {
+    this.favoritesListeners.push(callback);
+    callback(this.getFavoriteRoutes());
+    return () => {
+      this.favoritesListeners = this.favoritesListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  private notifyFavoritesListeners(): void {
+    const all = this.getFavoriteRoutes();
+    for (const cb of this.favoritesListeners) cb(all);
+  }
+
+  private loadCustomFavorites(): RoutePreset[] {
+    try {
+      const raw = localStorage.getItem(FlightPlanManager.FAVORITES_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((item) => ({ ...item, isCustom: true }));
+        }
+      }
+    } catch (e) {}
+    return [];
+  }
+
+  private saveCustomFavorites(list: RoutePreset[]): void {
+    try {
+      localStorage.setItem(FlightPlanManager.FAVORITES_STORAGE_KEY, JSON.stringify(list));
+    } catch (e) {}
+  }
 
   public async createPlan(
     originCode: string,

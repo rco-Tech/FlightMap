@@ -179,6 +179,27 @@ async function bootstrap() {
     const flightPlanManager = FlightPlanManager.getInstance();
     flightPlanManager.onPlanChanged((plan) => {
       globeScene.updateFlightPlanVisuals(plan);
+      telemetry.broadcastFlightPlan(plan);
+    });
+
+    // Connect remote flight plan changes from mobile copilot
+    telemetry.onFlightPlanCommand(async (cmd) => {
+      try {
+        console.log('[Main] Received remote flight plan command from mobile:', cmd);
+        const newPlan = await flightPlanManager.createPlan(
+          cmd.from,
+          cmd.to,
+          cmd.flightNumber || `${cmd.from}-${cmd.to}`,
+          cmd.airline || 'rTech Airways',
+          cmd.aircraft || 'Airbus A321neo',
+          cmd.cruiseAltitude || 37000,
+          cmd.cruiseSpeed || 450
+        );
+        telemetry.setSimulationProgress(0.05);
+        cameraManager.frameRouteOverview(newPlan);
+      } catch (err) {
+        console.warn('[Main] Failed to apply remote flight plan:', err);
+      }
     });
 
     const initialPlan = await flightPlanManager.createPlan(
@@ -193,6 +214,7 @@ async function bootstrap() {
 
     globeScene.updateFlightPlanVisuals(initialPlan);
     cameraManager.frameRouteOverview(initialPlan);
+    telemetry.broadcastFlightPlan(initialPlan);
     console.log('[FlightMap] Default flight plan loaded successfully.');
   } catch (err) {
     console.warn('[FlightMap] Flight plan init warning:', err);

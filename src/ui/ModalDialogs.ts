@@ -46,18 +46,8 @@ export class ModalDialogs {
 
         <div class="modal-body">
           <div class="preset-section">
-            <div class="section-label">POPULAR LONG-HAUL PRESETS</div>
-            <div class="presets-grid" id="presets-container">
-              ${FlightPlanManager.DEFAULT_ROUTES.map(
-                (r) => `
-                <button class="preset-btn" data-from="${r.from}" data-to="${r.to}" data-flight="${r.flightNumber}" data-airline="${r.airline}" data-aircraft="${r.aircraft}">
-                  <span class="preset-flight">${r.flightNumber}</span>
-                  <span class="preset-route">${r.from} &rarr; ${r.to}</span>
-                  <span class="preset-meta">${r.airline}</span>
-                </button>
-              `
-              ).join('')}
-            </div>
+            <div class="section-label">FAVORITE ROUTES & PRESETS</div>
+            <div class="presets-grid" id="presets-container"></div>
           </div>
 
           <div class="custom-route-section">
@@ -78,13 +68,14 @@ export class ModalDialogs {
             <div class="route-meta-grid">
               <div class="input-group">
                 <label>FLIGHT NUMBER</label>
-                <input type="text" id="input-flight-no" value="RT-101" />
+                <input type="text" id="input-flight-no" value="W4-3002" />
               </div>
               <div class="input-group">
                 <label>CRUISE ALTITUDE</label>
                 <select id="select-altitude">
                   <option value="36000">FL360 (36,000 FT)</option>
-                  <option value="38000" selected>FL380 (38,000 FT)</option>
+                  <option value="37000" selected>FL370 (37,000 FT)</option>
+                  <option value="38000">FL380 (38,000 FT)</option>
                   <option value="40000">FL400 (40,000 FT)</option>
                   <option value="43000">FL430 (43,000 FT)</option>
                 </select>
@@ -92,8 +83,9 @@ export class ModalDialogs {
               <div class="input-group">
                 <label>CRUISE SPEED</label>
                 <select id="select-speed">
+                  <option value="450" selected>Mach 0.76 (450 KTS)</option>
                   <option value="460">Mach 0.78 (460 KTS)</option>
-                  <option value="485" selected>Mach 0.82 (485 KTS)</option>
+                  <option value="485">Mach 0.82 (485 KTS)</option>
                   <option value="510">Mach 0.86 (510 KTS)</option>
                 </select>
               </div>
@@ -103,6 +95,7 @@ export class ModalDialogs {
 
         <div class="modal-footer">
           <button class="btn-secondary" id="btn-cancel-route">Cancel</button>
+          <button class="btn-secondary btn-fav-action" id="btn-save-route-fav" title="Save current route to favorites">⭐ Save as Favorite</button>
           <button class="btn-primary" id="btn-apply-route">Activate Flight Plan</button>
         </div>
       </div>
@@ -114,20 +107,96 @@ export class ModalDialogs {
     document.getElementById('btn-close-route')?.addEventListener('click', () => modal.remove());
     document.getElementById('btn-cancel-route')?.addEventListener('click', () => modal.remove());
 
-    // Preset buttons
-    modal.querySelectorAll('.preset-btn').forEach((btn) => {
-      btn.addEventListener('click', async (e) => {
-        const target = (e.currentTarget as HTMLElement);
-        const from = target.dataset.from!;
-        const to = target.dataset.to!;
-        const flight = target.dataset.flight!;
-        const airline = target.dataset.airline!;
-        const aircraft = target.dataset.aircraft!;
+    // Render presets dynamically with support for custom favorites
+    const renderPresets = () => {
+      const presetsContainer = document.getElementById('presets-container');
+      if (!presetsContainer) return;
 
-        await this.flightPlanManager.createPlan(from, to, flight, airline, aircraft);
-        this.telemetryManager.setSimulationProgress(0.05);
-        modal.remove();
+      const routes = this.flightPlanManager.getFavoriteRoutes();
+      presetsContainer.innerHTML = routes
+        .map(
+          (r) => `
+        <button class="preset-btn ${r.isCustom ? 'custom-fav' : ''}" data-from="${r.from}" data-to="${r.to}" data-flight="${r.flightNumber}" data-airline="${r.airline}" data-aircraft="${r.aircraft}" data-alt="${r.cruiseAltitudeFt || 37000}" data-speed="${r.cruiseSpeedKnots || 450}">
+          <div class="preset-header-row">
+            <span class="preset-flight">${r.flightNumber}</span>
+            ${r.isCustom ? `<span class="preset-fav-icon">⭐</span><span class="btn-del-fav" data-del-from="${r.from}" data-del-to="${r.to}" title="Remove favorite">&times;</span>` : ''}
+          </div>
+          <span class="preset-route">${r.from} &rarr; ${r.to}</span>
+          <span class="preset-meta">${r.airline}</span>
+        </button>
+      `
+        )
+        .join('');
+
+      presetsContainer.querySelectorAll('.preset-btn').forEach((btn) => {
+        btn.addEventListener('click', async (e) => {
+          const delTarget = (e.target as HTMLElement).closest('.btn-del-fav') as HTMLElement;
+          if (delTarget) {
+            e.stopPropagation();
+            const delFrom = delTarget.dataset.delFrom!;
+            const delTo = delTarget.dataset.delTo!;
+            this.flightPlanManager.removeFavoriteRoute(delFrom, delTo);
+            renderPresets();
+            return;
+          }
+
+          const target = e.currentTarget as HTMLElement;
+          const from = target.dataset.from!;
+          const to = target.dataset.to!;
+          const flight = target.dataset.flight!;
+          const airline = target.dataset.airline!;
+          const aircraft = target.dataset.aircraft!;
+          const alt = parseInt(target.dataset.alt || '37000', 10);
+          const speed = parseInt(target.dataset.speed || '450', 10);
+
+          await this.flightPlanManager.createPlan(from, to, flight, airline, aircraft, alt, speed);
+          this.telemetryManager.setSimulationProgress(0.05);
+          modal.remove();
+        });
       });
+    };
+
+    renderPresets();
+
+    // Wire up "Save as Favorite" button
+    document.getElementById('btn-save-route-fav')?.addEventListener('click', () => {
+      const from = (document.getElementById('input-origin') as HTMLInputElement)?.value.trim().toUpperCase();
+      const to = (document.getElementById('input-dest') as HTMLInputElement)?.value.trim().toUpperCase();
+      const flightNumber = (document.getElementById('input-flight-no') as HTMLInputElement)?.value.trim().toUpperCase() || `${from}-${to}`;
+      const altitude = parseInt((document.getElementById('select-altitude') as HTMLSelectElement)?.value || '37000', 10);
+      const speed = parseInt((document.getElementById('select-speed') as HTMLSelectElement)?.value || '450', 10);
+
+      const aptFrom = db.getByCode(from);
+      const aptTo = db.getByCode(to);
+
+      if (!aptFrom || !aptTo) {
+        alert(`Please enter valid airport codes (e.g. BHX, OTP). Could not find: ${!aptFrom ? from : to}`);
+        return;
+      }
+
+      const airlineName = aptFrom.country === aptTo.country ? 'Domestic Route' : `${aptFrom.iata} &rarr; ${aptTo.iata}`;
+
+      this.flightPlanManager.saveFavoriteRoute({
+        from,
+        to,
+        flightNumber,
+        airline: airlineName,
+        aircraft: 'Airbus A321neo',
+        cruiseAltitudeFt: altitude,
+        cruiseSpeedKnots: speed
+      });
+
+      const btn = document.getElementById('btn-save-route-fav');
+      if (btn) {
+        btn.textContent = '✓ Saved to Favorites!';
+        btn.style.color = 'var(--accent-green, #00ff66)';
+        setTimeout(() => {
+          btn.textContent = '⭐ Save as Favorite';
+          btn.style.color = '';
+        }, 1800);
+      }
+
+      renderPresets();
     });
 
     // Airport autocomplete helper

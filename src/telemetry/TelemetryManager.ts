@@ -52,6 +52,7 @@ export class TelemetryManager {
   private phoneConnected: boolean = false;
   private phoneListeners: ((connected: boolean, active: boolean) => void)[] = [];
   private cameraListeners: ((mode: string) => void)[] = [];
+  private flightPlanListeners: ((cmd: any) => void)[] = [];
 
   public onCameraCommand(callback: (mode: string) => void): () => void {
     this.cameraListeners.push(callback);
@@ -66,6 +67,32 @@ export class TelemetryManager {
         this.ws.send(JSON.stringify({
           type: 'camera_active',
           mode,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+    }
+  }
+
+  public onFlightPlanCommand(callback: (cmd: any) => void): () => void {
+    this.flightPlanListeners.push(callback);
+    return () => {
+      this.flightPlanListeners = this.flightPlanListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public broadcastFlightPlan(plan: any): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && plan) {
+      try {
+        this.ws.send(JSON.stringify({
+          type: 'flight_plan_active',
+          from: plan.origin?.iata || plan.from,
+          to: plan.destination?.iata || plan.to,
+          originCity: plan.origin?.city,
+          destCity: plan.destination?.city,
+          flightNumber: plan.flightNumber,
+          airline: plan.airline,
+          aircraft: plan.aircraftType,
+          totalDistanceNM: plan.totalDistanceNM,
           timestamp: Date.now()
         }));
       } catch (e) {}
@@ -318,6 +345,10 @@ export class TelemetryManager {
               role: 'laptop',
               name: 'FlightMap 3D Moving Map'
             }));
+            const activePlan = this.flightPlanManager.getActivePlan();
+            if (activePlan) {
+              this.broadcastFlightPlan(activePlan);
+            }
           } catch (e) {}
         };
 
@@ -374,6 +405,22 @@ export class TelemetryManager {
                 this.ws?.send(JSON.stringify({
                   type: 'camera_ack',
                   mode: msg.mode,
+                  timestamp: Date.now()
+                }));
+              } catch (e) {}
+            }
+
+            if (msg.type === 'flight_plan_command' && msg.from && msg.to) {
+              console.log('[TelemetryManager] Received remote flight plan command from phone:', msg.from, '->', msg.to);
+              for (const cb of this.flightPlanListeners) {
+                cb(msg);
+              }
+              try {
+                this.ws?.send(JSON.stringify({
+                  type: 'flight_plan_ack',
+                  from: msg.from,
+                  to: msg.to,
+                  flightNumber: msg.flightNumber,
                   timestamp: Date.now()
                 }));
               } catch (e) {}

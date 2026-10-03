@@ -798,6 +798,54 @@ html, body {
   transform: translateY(-2px);
 }
 
+.preset-header-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.preset-btn.custom-fav {
+  border-color: rgba(255, 176, 0, 0.35);
+  background: rgba(255, 176, 0, 0.05);
+}
+
+.preset-btn.custom-fav:hover {
+  background: rgba(255, 176, 0, 0.14);
+  border-color: var(--accent-gold, #ffb000);
+}
+
+.preset-fav-icon {
+  font-size: 11px;
+  margin-right: 4px;
+}
+
+.btn-del-fav {
+  font-size: 16px;
+  line-height: 1;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-del-fav:hover {
+  color: var(--accent-red, #ff2a55);
+  background: rgba(255, 42, 85, 0.2);
+}
+
+.btn-fav-action {
+  background: rgba(255, 176, 0, 0.1);
+  border: 1px solid rgba(255, 176, 0, 0.35);
+  color: #fde047;
+}
+
+.btn-fav-action:hover {
+  background: rgba(255, 176, 0, 0.2);
+  border-color: #fde047;
+}
+
 .preset-flight {
   font-family: var(--font-mono);
   font-size: 14px;
