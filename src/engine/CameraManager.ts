@@ -10,10 +10,11 @@ export class CameraManager {
   private mode: CameraMode = 'orbit';
   private globeScene: GlobeScene;
 
-  // Orbit controls state
-  private orbitDistance: number = 205;
-  private orbitTheta: number = 0; // azimuthal angle
-  private orbitPhi: number = Math.PI / 3; // polar angle
+  // Aircraft-follow orbit control state
+  private orbitDistance: number = 205; // distance from globe centre (view altitude)
+  private orbitTheta: number = 0; // azimuth around the aircraft's local vertical
+  private orbitTilt: number = 0.42; // tilt from straight-down (0) toward the horizon
+  private smoothedForward: THREE.Vector3 = new THREE.Vector3(0, 0, 1); // damped flight direction
   private isDragging: boolean = false;
   private prevMouseX: number = 0;
   private prevMouseY: number = 0;
@@ -45,19 +46,13 @@ export class CameraManager {
   }
 
   /**
-   * Smoothly frames the 3D globe view directly over the entire flight route.
-   * Centers the camera between origin and destination along the Great Circle arc,
-   * scales orbit distance to fit the full route on screen, and rotates the globe directly.
+   * Settles the follow-orbit camera over a new flight plan: picks a view
+   * altitude that suits the route length, applies a pleasant default tilt,
+   * and leans the view "behind" the initial route bearing so the camera
+   * naturally faces along the flight path.
    */
   public frameRouteOverview(plan: FlightPlanData): void {
     this.mode = 'orbit';
-
-    // Calculate midpoint along Great Circle arc
-    const mid = AviationMath.intermediatePoint(
-      { lat: plan.origin.lat, lon: plan.origin.lon },
-      { lat: plan.destination.lat, lon: plan.destination.lon },
-      0.5
-    );
 
     // Dynamic camera distance based on flight route length (NM)
     // Short haul (500nm) -> ~175, Medium haul (1500nm) -> ~195, Long haul (5000nm+) -> ~240
@@ -68,22 +63,23 @@ export class CameraManager {
     }
     this.orbitDistance = targetDistance;
 
-    // Target polar angle (phi) and azimuthal angle (theta)
-    const targetPhi = Math.max(0.1, Math.min(Math.PI - 0.1, (90 - mid.lat) * (Math.PI / 180)));
+    // Standard forward-looking follow angle
+    this.orbitTilt = 0.42;
 
-    const phi = (90 - mid.lat) * (Math.PI / 180);
-    const theta = (mid.lon + 180) * (Math.PI / 180);
-    const x = -(Math.sin(phi) * Math.cos(theta));
-    const z = Math.sin(phi) * Math.sin(theta);
-    const targetTheta = Math.atan2(x, z);
-
-    // Compute shortest angular rotation delta around the globe
-    let diffTheta = targetTheta - this.orbitTheta;
-    while (diffTheta > Math.PI) diffTheta -= Math.PI * 2;
-    while (diffTheta < -Math.PI) diffTheta += Math.PI * 2;
-
-    this.orbitPhi = targetPhi;
-    this.orbitTheta = this.orbitTheta + diffTheta;
+    // Orient the view behind the initial takeoff bearing (camera trails the jet)
+    try {
+      const waypoints = plan.waypoints || [];
+      const probe = waypoints.length > 0
+        ? waypoints[Math.min(waypoints.length - 1, Math.max(1, Math.floor(waypoints.length * 0.08)))]
+        : plan.destination;
+      const bearing = AviationMath.calculateBearing(
+        { lat: plan.origin.lat, lon: plan.origin.lon },
+        { lat: probe.lat, lon: probe.lon }
+      );
+      this.orbitTheta = -(bearing * Math.PI) / 180;
+    } catch {
+      this.orbitTheta = 0;
+    }
   }
 
   private initEventListeners(canvas: HTMLCanvasElement): void {
@@ -107,7 +103,7 @@ export class CameraManager {
 
       if (this.mode === 'orbit' || this.mode === 'tactical') {
         this.orbitTheta -= deltaX * 0.005;
-        this.orbitPhi = Math.max(0.1, Math.min(Math.PI - 0.1, this.orbitPhi + deltaY * 0.005));
+        this.orbitTilt = Math.max(0.02, Math.min(1.35, this.orbitTilt + deltaY * 0.005));
       }
     });
 
@@ -146,7 +142,7 @@ export class CameraManager {
 
         if (this.mode === 'orbit' || this.mode === 'tactical') {
           this.orbitTheta -= deltaX * 0.006;
-          this.orbitPhi = Math.max(0.1, Math.min(Math.PI - 0.1, this.orbitPhi + deltaY * 0.006));
+          this.orbitTilt = Math.max(0.02, Math.min(1.35, this.orbitTilt + deltaY * 0.006));
         }
       } else if (e.touches.length === 2) {
         const dist = Math.hypot(
@@ -236,17 +232,48 @@ export class CameraManager {
 
       case 'orbit':
       default: {
-        // Global interactive 3D globe orbit
-        const x = this.orbitDistance * Math.sin(this.orbitPhi) * Math.sin(this.orbitTheta);
-        const y = this.orbitDistance * Math.cos(this.orbitPhi);
-        const z = this.orbitDistance * Math.sin(this.orbitPhi) * Math.cos(this.orbitTheta);
+        // Aircraft-following orbit: the camera rides with the jet so the globe
+        // glides beneath it (classic moving-map feel). Dragging looks around
+        // the aircraft, wheel/pinch changes altitude, and the camera keeps the
+        // jet centred with a subtle look-ahead along the flight path.
+        const normal = planePos.clone().normalize();
 
-        targetPos.set(x, y, z);
-        // Look towards center of globe or smoothly track aircraft
-        lookTarget.set(0, 0, 0);
+        // Local geographic basis at the aircraft (north/east tangent vectors)
+        const latLon = AviationMath.vector3ToLatLon(
+          planePos.x,
+          planePos.y,
+          planePos.z,
+          Math.max(0.001, planePos.length())
+        );
+        const northRef = AviationMath.latLonToVector3(Math.min(89.9, latLon.lat + 0.35), latLon.lon, 1);
+        const northVec = new THREE.Vector3(northRef.x, northRef.y, northRef.z).sub(normal).normalize();
+        const eastVec = new THREE.Vector3().crossVectors(northVec, normal).normalize();
+        northVec.crossVectors(normal, eastVec).normalize();
+
+        // Orbit offset direction: tilt away from straight-down toward the
+        // horizon, then rotate the azimuth around the local vertical.
+        const camDir = normal
+          .clone()
+          .applyAxisAngle(eastVec, this.orbitTilt)
+          .applyAxisAngle(normal, this.orbitTheta);
+
+        // Keep the same apparent altitude as the classic orbit (distance from globe centre)
+        const distFromPlane = Math.max(4, this.orbitDistance - planePos.length());
+        targetPos.copy(planePos).addScaledVector(camDir, distFromPlane);
+
+        // Look slightly ahead along the flight direction for a cinematic lead
+        const forwardVec = new THREE.Vector3(0, 0, 1).applyQuaternion(aircraft.quaternion).normalize();
+        this.smoothedForward.lerp(forwardVec, 0.06).normalize();
+        const lookLead = Math.min(12, distFromPlane * 0.09);
+        lookTarget.copy(planePos).addScaledVector(this.smoothedForward, lookLead);
 
         this.camera.position.lerp(targetPos, 0.1);
-        this.camera.up.set(0, 1, 0);
+
+        // Blend the up vector: north-up over the aircraft when near-overhead,
+        // easing to radial (sky-up) as the camera tilts toward the horizon.
+        const upBlend = Math.min(1, this.orbitTilt / 1.2);
+        const upVec = northVec.clone().lerp(normal, upBlend).normalize();
+        this.camera.up.lerp(upVec, 0.15).normalize();
         this.camera.lookAt(lookTarget);
         return;
       }

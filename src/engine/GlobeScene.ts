@@ -483,9 +483,10 @@ export class GlobeScene {
     const R = GlobeScene.GLOBE_RADIUS;
 
     for (const wp of plan.waypoints) {
-      // Offset flight path ribbon slightly below aircraft cruising altitude (by 0.22 units)
-      // so the aircraft flies cleanly above the route line without the tube clipping inside the fuselage/tail!
-      const altScale = Math.max(0.08, (((wp.altitude || 0) / 38000) * 2.2) - 0.22);
+      // Offset flight path ribbon safely below the aircraft's flight profile
+      // (0.45 units) so the climbing/flying jet never visually intersects the
+      // tube — it should read as a route line flying beneath the aircraft.
+      const altScale = Math.max(0.08, (((wp.altitude || 0) / 38000) * 2.2) - 0.45);
       const v = AviationMath.latLonToVector3(wp.lat, wp.lon, R + altScale);
       points.push(new THREE.Vector3(v.x, v.y, v.z));
     }
@@ -635,13 +636,16 @@ export class GlobeScene {
         targetScale = 0.42;
       } else {
         // Global Orbit / 2D Tactical modes: Adaptive zoom scaling
-        // Scales smoothly with zoom distance so it looks like a sleek map marker without covering countries
-        targetScale = Math.min(0.24, Math.max(0.08, 0.07 + (camDist / 200) * 0.09));
+        // Bolder marker scale so the airframe reads clearly from globe distance
+        targetScale = Math.min(0.34, Math.max(0.16, 0.12 + (camDist / 200) * 0.1));
       }
 
       const currentScale = this.aircraft.group.scale.x;
       const newScale = THREE.MathUtils.lerp(currentScale, targetScale, 0.15);
       this.aircraft.group.scale.setScalar(newScale);
+
+      // Keep the nav/strobe light halos at a readable on-screen size at any zoom
+      this.updateAircraftGlowScale(camera, camDist);
 
       // Update astronomical sun position and illumination dynamically
       this.updateSunPosition();
@@ -793,6 +797,26 @@ export class GlobeScene {
     // Slowly rotate clouds
     if (this.cloudsMesh) {
       this.cloudsMesh.rotation.y += dt * 0.002;
+    }
+  }
+
+  /**
+   * Counter-scales the aircraft's glowing navigation/strobe halos so they stay
+   * at an approximately constant on-screen size from close-up views to max zoom-out.
+   */
+  private updateAircraftGlowScale(camera: THREE.Camera, camDist: number): void {
+    const glows = this.aircraft.getGlowSprites();
+    if (glows.length === 0 || !(camera instanceof THREE.PerspectiveCamera)) return;
+
+    const d = Math.max(0.5, camDist);
+    const canvasH = this.renderer.domElement.clientHeight || window.innerHeight || 900;
+    const worldPerPx = (2 * d * Math.tan((camera.fov * Math.PI) / 360)) / canvasH;
+    const groupScale = this.aircraft.group.scale.x || 1;
+    const targetPx = THREE.MathUtils.clamp(d * 0.075, 5.5, 12);
+    const spriteScale = (targetPx * worldPerPx) / groupScale;
+
+    for (const sprite of glows) {
+      sprite.scale.set(spriteScale, spriteScale, 1);
     }
   }
 

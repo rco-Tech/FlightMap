@@ -10,7 +10,67 @@ export class AircraftModel {
   private navLights: THREE.PointLight[] = [];
   private strobeLights: THREE.PointLight[] = [];
   private strobeMeshes: THREE.Mesh[] = [];
+  private glowSprites: THREE.Sprite[] = [];
+  private strobeGlow: THREE.Sprite | null = null;
   private strobeTimer: number = 0;
+
+  private static glowTexture: THREE.CanvasTexture | null = null;
+
+  /**
+   * Shared soft radial-gradient texture used by all navigation/strobe halos.
+   */
+  private static getGlowTexture(): THREE.CanvasTexture | null {
+    if (!AircraftModel.glowTexture) {
+      try {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return null;
+        const grad = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+        grad.addColorStop(0, 'rgba(255,255,255,1)');
+        grad.addColorStop(0.28, 'rgba(255,255,255,0.85)');
+        grad.addColorStop(0.62, 'rgba(255,255,255,0.22)');
+        grad.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, size, size);
+        AircraftModel.glowTexture = new THREE.CanvasTexture(canvas);
+      } catch {
+        return null;
+      }
+    }
+    return AircraftModel.glowTexture;
+  }
+
+  /**
+   * Adds an additive-blended light halo at a model-space position.
+   * GlobeScene counter-scales these every frame so they keep a constant,
+   * readable on-screen size at any camera distance.
+   */
+  private addGlowSprite(x: number, y: number, z: number, color: number, opacity: number = 0.9): THREE.Sprite | null {
+    const tex = AircraftModel.getGlowTexture();
+    if (!tex) return null;
+    const mat = new THREE.SpriteMaterial({
+      map: tex,
+      color,
+      transparent: true,
+      opacity,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(mat);
+    sprite.position.set(x, y, z);
+    sprite.scale.set(0.3, 0.3, 1);
+    sprite.userData = { isAircraftGlow: true };
+    this.modelGroup.add(sprite);
+    this.glowSprites.push(sprite);
+    return sprite;
+  }
+
+  public getGlowSprites(): THREE.Sprite[] {
+    return this.glowSprites;
+  }
 
   constructor(type: AircraftType = 'business_jet') {
     this.group = new THREE.Group();
@@ -31,6 +91,8 @@ export class AircraftModel {
     this.navLights = [];
     this.strobeLights = [];
     this.strobeMeshes = [];
+    this.glowSprites = [];
+    this.strobeGlow = null;
 
     if (type === 'business_jet') {
       this.buildPrivateBusinessJet();
@@ -48,7 +110,10 @@ export class AircraftModel {
     const pearlWhiteMat = new THREE.MeshStandardMaterial({
       color: 0xf5f8fb,
       roughness: 0.16,
-      metalness: 0.2
+      metalness: 0.2,
+      // Mirrored parts (left wing / winglets / stabilizers) flip triangle
+      // winding — double-sided rendering keeps their shading correct.
+      side: THREE.DoubleSide
     });
 
     const darkGlassMat = new THREE.MeshStandardMaterial({
@@ -164,7 +229,7 @@ export class AircraftModel {
 
     const wingletGeom = new THREE.ExtrudeGeometry(wingletShape, { depth: 0.04, bevelEnabled: false });
 
-    const rightWinglet = new THREE.Mesh(wingletGeom, darkTrimMat);
+    const rightWinglet = new THREE.Mesh(wingletGeom, pearlWhiteMat);
     rightWinglet.position.set(5.75, 0.12, -1.8);
     rightWinglet.rotation.z = -0.3;
     rightWinglet.rotation.y = -0.08;
@@ -172,7 +237,7 @@ export class AircraftModel {
 
     const leftWingletGeom = wingletGeom.clone();
     leftWingletGeom.scale(-1, 1, 1);
-    const leftWinglet = new THREE.Mesh(leftWingletGeom, darkTrimMat);
+    const leftWinglet = new THREE.Mesh(leftWingletGeom, pearlWhiteMat);
     leftWinglet.position.set(-5.75, 0.12, -1.8);
     leftWinglet.rotation.z = 0.3;
     leftWinglet.rotation.y = 0.08;
@@ -227,11 +292,14 @@ export class AircraftModel {
     this.modelGroup.add(buildEngine(false));
 
     // 6. T-Tail Empennage (Vertical Fin with High Horizontal Stabilizer)
+    // The shape is defined in POSITIVE X: after the +90° Y rotation, the fin
+    // sweeps AFT (top edge behind the base, toward the tail tip). A negative-X
+    // shape would sweep forward — producing a ghostly detached T-tail.
     const finShape = new THREE.Shape();
     finShape.moveTo(0, 0);
-    finShape.lineTo(-1.6, 2.3);
-    finShape.lineTo(-2.2, 2.3);
-    finShape.lineTo(-1.6, 0);
+    finShape.lineTo(1.6, 2.3);
+    finShape.lineTo(2.2, 2.3);
+    finShape.lineTo(1.6, 0);
     finShape.closePath();
 
     const finGeom = new THREE.ExtrudeGeometry(finShape, {
@@ -242,7 +310,7 @@ export class AircraftModel {
     });
     finGeom.rotateY(Math.PI / 2);
     const fin = new THREE.Mesh(finGeom, darkTrimMat);
-    fin.position.set(-0.03, 0.25, -3.2);
+    fin.position.set(-0.03, 0.25, -2.1);
     this.modelGroup.add(fin);
 
     // Horizontal T-Tail mounted atop vertical fin
@@ -291,12 +359,18 @@ export class AircraftModel {
     this.modelGroup.add(strobeLight);
     this.strobeLights.push(strobeLight);
 
-    const strobeGeom = new THREE.SphereGeometry(0.05, 8, 8);
+    const strobeGeom = new THREE.SphereGeometry(0.11, 8, 8);
     const strobeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const strobeMesh = new THREE.Mesh(strobeGeom, strobeMat);
     strobeMesh.position.set(0, 0.46, 0.2);
     this.modelGroup.add(strobeMesh);
     this.strobeMeshes.push(strobeMesh);
+
+    // Glowing navigation light halos (readable from globe-orbit distance)
+    this.addGlowSprite(-5.85, 0.45, -1.8, 0xff3050); // Port wingtip — red
+    this.addGlowSprite(5.85, 0.45, -1.8, 0x2dff70); // Starboard wingtip — green
+    this.addGlowSprite(0, 2.72, -5.32, 0xffffff, 0.75); // Tail — white
+    this.strobeGlow = this.addGlowSprite(0, 0.46, 0.2, 0xffffff, 0.95); // Fuselage strobe — flashes
   }
 
   /**
@@ -308,7 +382,10 @@ export class AircraftModel {
     const pearlWhiteMat = new THREE.MeshStandardMaterial({
       color: 0xf5f8fb,
       roughness: 0.15,
-      metalness: 0.18
+      metalness: 0.18,
+      // Mirrored parts (left wing / stabilizers) flip triangle winding —
+      // double-sided rendering keeps their shading correct.
+      side: THREE.DoubleSide
     });
 
     const darkGlassMat = new THREE.MeshStandardMaterial({
@@ -448,17 +525,18 @@ export class AircraftModel {
     this.modelGroup.add(buildUnderwingEngine(false));
 
     // 4. Swept Vertical Stabilizer (Airline Tail)
+    // Positive-X shape => proper aft sweep after the +90° Y rotation.
     const finShape = new THREE.Shape();
     finShape.moveTo(0, 0);
-    finShape.lineTo(-1.8, 2.7);
-    finShape.lineTo(-2.5, 2.7);
-    finShape.lineTo(-2.0, 0);
+    finShape.lineTo(1.8, 2.7);
+    finShape.lineTo(2.5, 2.7);
+    finShape.lineTo(2.0, 0);
     finShape.closePath();
 
     const finGeom = new THREE.ExtrudeGeometry(finShape, { depth: 0.08, bevelEnabled: true, bevelSize: 0.02 });
     finGeom.rotateY(Math.PI / 2);
     const fin = new THREE.Mesh(finGeom, darkBlueMat);
-    fin.position.set(-0.04, 0.35, -3.6);
+    fin.position.set(-0.04, 0.35, -2.7);
     this.modelGroup.add(fin);
 
     // Low-Set Horizontal Tailplanes
@@ -505,12 +583,18 @@ export class AircraftModel {
     this.modelGroup.add(strobeLight);
     this.strobeLights.push(strobeLight);
 
-    const strobeGeom = new THREE.SphereGeometry(0.06, 8, 8);
+    const strobeGeom = new THREE.SphereGeometry(0.13, 8, 8);
     const strobeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     const strobeMesh = new THREE.Mesh(strobeGeom, strobeMat);
     strobeMesh.position.set(0, 0.55, 0.2);
     this.modelGroup.add(strobeMesh);
     this.strobeMeshes.push(strobeMesh);
+
+    // Glowing navigation light halos (readable from globe-orbit distance)
+    this.addGlowSprite(-6.55, 0.42, -2.1, 0xff3050); // Port wingtip — red
+    this.addGlowSprite(6.55, 0.42, -2.1, 0x2dff70); // Starboard wingtip — green
+    this.addGlowSprite(0, 3.05, -5.85, 0xffffff, 0.75); // Tail — white
+    this.strobeGlow = this.addGlowSprite(0, 0.55, 0.2, 0xffffff, 0.95); // Fuselage strobe — flashes
   }
 
   public update(dt: number): void {
@@ -521,6 +605,9 @@ export class AircraftModel {
     }
     for (const mesh of this.strobeMeshes) {
       mesh.visible = flash;
+    }
+    if (this.strobeGlow) {
+      this.strobeGlow.visible = flash;
     }
   }
 }

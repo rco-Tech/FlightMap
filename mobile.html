@@ -11,6 +11,27 @@
     <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
     <title>FlightMap Mobile // GPS Transmitter & Copilot</title>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📡</text></svg>" />
+    <script>
+      // Localhost dev guard: never let a leftover service worker serve stale builds.
+      try {
+        var hm = location.hostname;
+        if (hm === 'localhost' || hm === '127.0.0.1' || hm === '[::1]') {
+          if (navigator.serviceWorker) {
+            try {
+              navigator.serviceWorker.register = function () {
+                return Promise.reject(new Error('FlightMap: service worker disabled on localhost'));
+              };
+            } catch (e) {}
+            navigator.serviceWorker.getRegistrations().then(function (rs) {
+              rs.forEach(function (r) { r.unregister(); });
+            });
+          }
+          if (window.caches && caches.keys) {
+            caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); });
+          }
+        }
+      } catch (e) {}
+    </script>
   </head>
   <body class="mobile-body">
     <div id="mobile-app"></div>

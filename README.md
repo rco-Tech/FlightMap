@@ -6,6 +6,7 @@
 [![Engine](https://img.shields.io/badge/3D_Engine-Three.js_WebGL2-green.svg?style=flat-square)](https://threejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
 [![Platform](https://img.shields.io/badge/Platform-Windows_%7C_macOS_%7C_Linux_%7C_iOS_%7C_Android-orange.svg?style=flat-square)](#)
+[![Live PWA](https://img.shields.io/badge/Live_PWA-rco--tech.github.io%2FFlightMap-00e5ff?style=flat-square)](https://rco-tech.github.io/FlightMap/)
 
 ---
 
@@ -33,11 +34,12 @@
 - **Aerodynamic 36-Segment Lathe Geometry**:
   - **Private Business Jet**: Sleek fuselage loft with swept wings, blended winglets, dual aft-mounted turbofans, and T-tail stabilizer (Gulfstream G650ER profile).
   - **Commercial Widebody Airliner**: Twin-aisle fuselage with raked wingtips, dual underwing high-bypass turbofans with chevron cowlings, and classic empennage (Boeing 787-9 Dreamliner profile).
-- **Adaptive Camera Distance Scaling**: Dynamically scales the aircraft model in Globe Orbit view ($0.08 - 0.24$) so it never covers entire continents, while expanding to full size ($0.42$) in Chase and Cockpit views.
+- **Adaptive Camera Distance Scaling**: Dynamically scales the aircraft model in Globe Orbit view ($0.16 - 0.34$) so it reads clearly as a moving marker without covering entire continents, while expanding to full size ($0.42$) in Chase and Cockpit views.
+- **Readable Navigation & Strobe Lights**: Red/green wingtip, white tail, and flashing anti-collision strobe halos are counter-scaled every frame so they keep a constant, readable on-screen size at any zoom, from the cabin window to a full-globe view.
 - **Spherical Linear Interpolation (Slerp)**: Seamless Great-Circle orthodromic heading, pitch, and roll calculation.
 
 ### 🎥 4. Five Dynamic Camera Perspectives
-1. **Globe Orbit**: Full planetary overview with interactive mouse/touch panning and route auto-framing.
+1. **Globe Orbit**: Aircraft-following orbital view — the camera rides with the jet so the globe glides beneath it, with interactive mouse/touch look-around and wheel/pinch altitude control.
 2. **Cockpit First-Person**: Forward pilot's eye perspective looking out over the nose cone.
 3. **Wing Cam**: Passenger window angle looking across the wing and engine cowlings toward the ground below.
 4. **Chase Cam**: Dynamic following camera positioned behind the tail stabilizer.
@@ -99,14 +101,19 @@ npm start
 
 ## 📲 Standalone PWA (Two Operating Modes)
 
-FlightMap installs as an offline **Progressive Web App** on Android and iOS. The launch screen (`start.html`, the manifest `start_url`) offers two modes:
+FlightMap installs as an offline **Progressive Web App** on Android and iOS.
+
+🌐 **Live Web App / PWA Link:** [https://rco-tech.github.io/FlightMap/](https://rco-tech.github.io/FlightMap/)
+*(Direct Mode Chooser: [https://rco-tech.github.io/FlightMap/start.html](https://rco-tech.github.io/FlightMap/start.html))*
+
+The launch screen (`start.html`, the manifest `start_url`) offers two modes:
 
 1. **🌐 Moving Map** — the device renders the full 3D moving map itself using its own satellite GNSS. No laptop or network required; the screen is kept awake automatically.
 2. **📡 GPS Relay** — the device streams its GNSS + gyroscope to a laptop running FlightMap (the original transmitter workflow).
 
 ### Installing
-- **Android (Chrome/Edge)**: open the site → menu → **Install app / Add to Home screen** (the browser's native prompt).
-- **iOS (Safari)**: open the site → **Share** → **Add to Home Screen**.
+- **Android (Chrome/Edge)**: Open [FlightMap](https://rco-tech.github.io/FlightMap/) → menu (⋮) → **Install app / Add to Home screen** (the browser native prompt).
+- **iOS (Safari)**: Open [FlightMap](https://rco-tech.github.io/FlightMap/) → tap **Share** → **Add to Home Screen**.
 
 Once installed, the app launches offline from the home screen, precaching the app shell, airport/geo data, and the mobile (4K) texture tier only — the 8K desktop textures are intentionally excluded from the service-worker cache.
 
@@ -118,7 +125,7 @@ npm run icons          # rebuild only public/icons
 ```
 
 ### Releases
-Tagged releases (`v*`) are built and published by GitHub Actions, with a ready-to-serve offline `dist` bundle attached as a release asset.
+Tagged releases (`v*`) are built and published by GitHub Actions, with a ready-to-serve offline `dist` bundle attached as a release asset on the [GitHub Releases](https://github.com/rco-Tech/FlightMap/releases) page.
 
 ```bash
 npm run release          # tag the current version and push (triggers the release workflow)
