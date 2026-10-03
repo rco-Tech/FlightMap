@@ -299,6 +299,18 @@ function setupWebSocket(wss) {
           console.log(`[FlightPlan] Active flight plan updated: ${data.from} -> ${data.to} (${data.flightNumber})`);
         }
 
+        if (data.type === 'camera_command') {
+          console.log(`[Camera] Remote camera view switched to: "${data.mode}"`);
+        }
+
+        if (data.type === 'sim_speed_command') {
+          console.log(`[Simulation] Remote speed command: ${data.speed}x`);
+        }
+
+        if (data.type === 'sim_pause_command') {
+          console.log(`[Simulation] Remote pause command: ${data.isPaused ? 'PAUSE' : 'RESUME'}`);
+        }
+
         if (data.type === 'unit_system') {
           console.log(`[UnitSystem] Active unit system switched to: "${data.system}"`);
         }

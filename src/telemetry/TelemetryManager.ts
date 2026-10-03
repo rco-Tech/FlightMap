@@ -112,6 +112,19 @@ export class TelemetryManager {
     }
   }
 
+  public broadcastSimState(): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify({
+          type: 'sim_speed_active',
+          speed: this.simSpeedMultiplier,
+          isPaused: this.simIsPaused,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+    }
+  }
+
   public onPhoneStatus(callback: (connected: boolean, active: boolean) => void): () => void {
     this.phoneListeners.push(callback);
     callback(this.phoneConnected, this.activeSource === 'mobile_gps');
@@ -248,6 +261,7 @@ export class TelemetryManager {
 
   public setSimulationSpeed(multiplier: number): void {
     this.simSpeedMultiplier = Math.max(1, Math.min(200, multiplier));
+    this.broadcastSimState();
   }
 
   public getSimulationSpeed(): number {
@@ -261,6 +275,7 @@ export class TelemetryManager {
 
   public toggleSimulationPause(): boolean {
     this.simIsPaused = !this.simIsPaused;
+    this.broadcastSimState();
     return this.simIsPaused;
   }
 
@@ -363,6 +378,7 @@ export class TelemetryManager {
               this.broadcastFlightPlan(activePlan);
             }
             this.broadcastUnitSystem(UnitManager.getInstance().getSystem());
+            this.broadcastSimState();
           } catch (e) {}
         };
 
@@ -372,6 +388,9 @@ export class TelemetryManager {
 
             if (msg.type === 'peer_status' || msg.type === 'server_hello') {
               this.phoneConnected = Boolean(msg.phoneOnline);
+              if (this.phoneConnected) {
+                this.broadcastSimState();
+              }
               for (const cb of this.phoneListeners) {
                 cb(this.phoneConnected, this.activeSource === 'mobile_gps');
               }
@@ -442,6 +461,25 @@ export class TelemetryManager {
 
             if (msg.type === 'unit_system' && msg.system) {
               UnitManager.getInstance().setSystem(msg.system);
+            }
+
+            if (msg.type === 'sim_speed_command' && msg.speed) {
+              console.log('[TelemetryManager] Received remote simulation speed command:', msg.speed);
+              this.setSimulationSpeed(msg.speed);
+              if (this.activeSource !== 'simulation') {
+                this.setSource('simulation');
+              }
+            }
+
+            if (msg.type === 'sim_pause_command') {
+              console.log('[TelemetryManager] Received remote simulation pause command, isPaused:', msg.isPaused);
+              if (typeof msg.isPaused === 'boolean') {
+                this.simIsPaused = msg.isPaused;
+                this.broadcastSimState();
+              } else {
+                this.toggleSimulationPause();
+              }
+              this.emitState();
             }
           } catch (e) {
             console.error('[TelemetryManager] Error parsing WS message:', e);

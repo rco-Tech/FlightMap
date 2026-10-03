@@ -783,6 +783,123 @@ input:checked + .toggle-slider:before {
   box-shadow: 0 0 12px rgba(0, 229, 255, 0.45);
 }
 
+/* Remote Simulation Speed Controls inside Camera Card */
+.remote-sim-speed-section {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.remote-sim-speed-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.remote-sim-speed-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: var(--text-muted);
+}
+
+.remote-sim-speed-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.12);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  padding: 2px 7px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.remote-sim-speed-badge.paused {
+  color: var(--accent-gold);
+  background: rgba(255, 176, 0, 0.15);
+  border-color: rgba(255, 176, 0, 0.4);
+}
+
+.remote-sim-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.remote-sim-pause-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 34px;
+  padding: 0 10px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.remote-sim-pause-btn:active {
+  transform: scale(0.94);
+  background: rgba(0, 229, 255, 0.2);
+}
+
+.remote-sim-pause-btn.paused {
+  background: rgba(255, 176, 0, 0.2);
+  border-color: var(--accent-gold);
+  color: var(--accent-gold);
+  box-shadow: 0 0 10px rgba(255, 176, 0, 0.35);
+}
+
+.remote-sim-speed-pills {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  flex: 1 1 auto;
+}
+
+.m-speed-pill {
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #ffffff;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s ease;
+}
+
+.m-speed-pill:active {
+  transform: scale(0.92);
+  background: var(--accent-cyan);
+  color: #02060d;
+}
+
+.m-speed-pill.active {
+  background: linear-gradient(135deg, var(--accent-cyan), #0099cc);
+  border-color: var(--accent-cyan);
+  color: #02060d;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.45);
+}
+
 .switch-mode-btn {
   width: 100%;
   margin: 0 0 12px;

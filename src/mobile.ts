@@ -48,6 +48,10 @@ class MobileController {
   private activeRouteKey: string = 'BHX-OTP';
   private isFlightPlanOpen: boolean = false;
 
+  // Remote Simulation Speed Controls
+  private remoteSimSpeed: number = 10;
+  private remoteSimPaused: boolean = false;
+
   constructor() {
     this.targetHost = this.resolveTargetHost();
     this.render();
@@ -296,6 +300,28 @@ class MobileController {
             <button class="cam-pill" data-cam="orbit">🌐 Globe</button>
             <button class="cam-pill" data-cam="tactical">🗺️ 2D Nav</button>
           </div>
+
+          <!-- Remote Simulation Speed Controls -->
+          <div class="remote-sim-speed-section">
+            <div class="remote-sim-speed-header">
+              <span class="remote-sim-speed-title">LAPTOP SIMULATION SPEED</span>
+              <span class="remote-sim-speed-badge" id="m-sim-speed-badge">10x</span>
+            </div>
+            <div class="remote-sim-speed-row">
+              <button class="remote-sim-pause-btn" id="m-btn-sim-pause" title="Pause / Resume Laptop Simulation">
+                <span id="m-sim-pause-icon">⏸</span>
+                <span id="m-sim-pause-text">PAUSE</span>
+              </button>
+              <div class="remote-sim-speed-pills" id="m-sim-speed-pills">
+                <button class="m-speed-pill" data-speed="1">1x</button>
+                <button class="m-speed-pill" data-speed="2">2x</button>
+                <button class="m-speed-pill" data-speed="5">5x</button>
+                <button class="m-speed-pill active" data-speed="10">10x</button>
+                <button class="m-speed-pill" data-speed="25">25x</button>
+                <button class="m-speed-pill" data-speed="50">50x</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Collapsible Remote Flight Plan & Route Selector -->
@@ -474,6 +500,24 @@ class MobileController {
       this.unitManager.setSystem(msg.system);
       this.setActiveUnitPill(msg.system);
       this.updateMobileReadouts(this.isSimulating ? 'Simulator' : 'GPS');
+    }
+
+    if (msg.type === 'sim_speed_active' || msg.type === 'sim_speed_ack') {
+      if (typeof msg.speed === 'number') {
+        this.setActiveSimSpeedPill(msg.speed);
+      }
+      if (typeof msg.isPaused === 'boolean') {
+        this.setRemoteSimPauseState(msg.isPaused);
+      }
+    }
+
+    if (msg.type === 'sim_pause_active' || msg.type === 'sim_pause_ack') {
+      if (typeof msg.isPaused === 'boolean') {
+        this.setRemoteSimPauseState(msg.isPaused);
+      }
+      if (typeof msg.speed === 'number') {
+        this.setActiveSimSpeedPill(msg.speed);
+      }
     }
   }
 
@@ -745,6 +789,38 @@ class MobileController {
     // Default active camera to Globe
     this.setActiveCameraPill('orbit');
 
+    // Remote Sim speed pills
+    document.querySelectorAll('.m-speed-pill').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const speed = parseInt((e.currentTarget as HTMLElement).dataset.speed || '10', 10);
+        this.setActiveSimSpeedPill(speed);
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+          try {
+            this.ws.send(JSON.stringify({
+              type: 'sim_speed_command',
+              speed,
+              timestamp: Date.now()
+            }));
+          } catch (err) {}
+        }
+      });
+    });
+
+    // Remote Sim pause button
+    document.getElementById('m-btn-sim-pause')?.addEventListener('click', () => {
+      const nextPaused = !this.remoteSimPaused;
+      this.setRemoteSimPauseState(nextPaused);
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        try {
+          this.ws.send(JSON.stringify({
+            type: 'sim_pause_command',
+            isPaused: nextPaused,
+            timestamp: Date.now()
+          }));
+        } catch (err) {}
+      }
+    });
+
     // Toggle collapsible remote flight plan selector
     document.getElementById('btn-toggle-remote-fp')?.addEventListener('click', () => {
       this.isFlightPlanOpen = !this.isFlightPlanOpen;
@@ -894,6 +970,57 @@ class MobileController {
         b.classList.remove('active');
       }
     });
+  }
+
+  private setActiveSimSpeedPill(speed: number): void {
+    this.remoteSimSpeed = speed;
+    const badge = document.getElementById('m-sim-speed-badge');
+    if (badge) {
+      badge.textContent = this.remoteSimPaused ? `PAUSED • ${speed}x` : `${speed}x`;
+      if (this.remoteSimPaused) {
+        badge.classList.add('paused');
+      } else {
+        badge.classList.remove('paused');
+      }
+    }
+
+    document.querySelectorAll('.m-speed-pill').forEach((btn) => {
+      const pSpeed = parseInt((btn as HTMLElement).dataset.speed || '0', 10);
+      if (pSpeed === speed) {
+        btn.classList.add('active');
+      } else {
+        btn.classList.remove('active');
+      }
+    });
+  }
+
+  private setRemoteSimPauseState(isPaused: boolean): void {
+    this.remoteSimPaused = isPaused;
+    const btn = document.getElementById('m-btn-sim-pause');
+    const icon = document.getElementById('m-sim-pause-icon');
+    const txt = document.getElementById('m-sim-pause-text');
+    const badge = document.getElementById('m-sim-speed-badge');
+
+    if (btn && icon && txt) {
+      if (isPaused) {
+        btn.classList.add('paused');
+        icon.textContent = '▶';
+        txt.textContent = 'RESUME';
+      } else {
+        btn.classList.remove('paused');
+        icon.textContent = '⏸';
+        txt.textContent = 'PAUSE';
+      }
+    }
+
+    if (badge) {
+      badge.textContent = isPaused ? `PAUSED • ${this.remoteSimSpeed}x` : `${this.remoteSimSpeed}x`;
+      if (isPaused) {
+        badge.classList.add('paused');
+      } else {
+        badge.classList.remove('paused');
+      }
+    }
   }
 
   private toggleIpDrawer(): void {
