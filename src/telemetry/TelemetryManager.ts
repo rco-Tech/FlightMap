@@ -262,6 +262,7 @@ export class TelemetryManager {
   public setSimulationSpeed(multiplier: number): void {
     this.simSpeedMultiplier = Math.max(1, Math.min(200, multiplier));
     this.broadcastSimState();
+    this.emitState();
   }
 
   public getSimulationSpeed(): number {
