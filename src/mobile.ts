@@ -319,14 +319,22 @@ class MobileController {
 
             <div class="remote-fp-section-title">CUSTOM ROUTE</div>
             <div class="remote-fp-inputs-row">
-              <input type="text" class="remote-fp-input" id="remote-input-from" placeholder="FROM" value="BHX" maxlength="4" autocomplete="off" />
-              <span class="remote-fp-arrow">&rarr;</span>
-              <input type="text" class="remote-fp-input" id="remote-input-to" placeholder="TO" value="OTP" maxlength="4" autocomplete="off" />
+              <div class="remote-fp-field">
+                <span class="remote-fp-field-tag">ORIGIN</span>
+                <input type="text" class="remote-fp-input" id="remote-input-from" placeholder="BHX" value="BHX" maxlength="4" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="remote-fp-arrow-wrap">
+                <span class="remote-fp-arrow">&rarr;</span>
+              </div>
+              <div class="remote-fp-field">
+                <span class="remote-fp-field-tag">DESTINATION</span>
+                <input type="text" class="remote-fp-input" id="remote-input-to" placeholder="OTP" value="OTP" maxlength="4" autocomplete="off" spellcheck="false" />
+              </div>
             </div>
 
             <div class="remote-fp-actions-row">
-              <button class="btn-remote-fav" id="btn-mobile-save-fav">⭐ Save Fav</button>
-              <button class="btn-remote-send" id="btn-mobile-send-route">🚀 Send to Laptop</button>
+              <button class="btn-remote-fav" id="btn-mobile-save-fav" title="Save to Favorites">⭐ Save Fav</button>
+              <button class="btn-remote-send" id="btn-mobile-send-route" title="Activate Route on Laptop">🚀 Send to Laptop</button>
             </div>
             <div class="remote-fp-feedback" id="remote-fp-feedback"></div>
           </div>
@@ -751,6 +759,16 @@ class MobileController {
           chevron.classList.remove('expanded');
         }
       }
+    });
+
+    // Auto-uppercase IATA inputs on mobile typing
+    const fromInput = document.getElementById('remote-input-from') as HTMLInputElement | null;
+    const toInput = document.getElementById('remote-input-to') as HTMLInputElement | null;
+    fromInput?.addEventListener('input', () => {
+      fromInput.value = fromInput.value.toUpperCase();
+    });
+    toInput?.addEventListener('input', () => {
+      toInput.value = toInput.value.toUpperCase();
     });
 
     // Send custom route button

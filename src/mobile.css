@@ -334,17 +334,22 @@ body.mobile-body {
 .ip-input-row {
   display: flex;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ip-input {
-  flex: 1;
+  flex: 1 1 0%;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   background: rgba(10, 22, 40, 0.95);
   border: 1px solid rgba(0, 229, 255, 0.4);
   border-radius: 8px;
   padding: 8px 12px;
   color: #ffffff;
   font-family: var(--font-mono);
-  font-size: 13px;
+  font-size: 16px; /* Prevents auto-zoom on iOS */
   font-weight: 600;
   outline: none;
 }
@@ -499,6 +504,8 @@ body.mobile-body {
   border-radius: 14px;
   padding: 8px 12px;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .m-unit-lbl {
@@ -506,17 +513,26 @@ body.mobile-body {
   font-weight: 700;
   letter-spacing: 0.8px;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .m-unit-pills {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 6px;
-  flex: 1;
-  justify-content: flex-end;
+  flex: 1 1 0%;
+  min-width: 0;
 }
 
 .m-unit-pill {
-  padding: 6px 10px;
+  padding: 7px 4px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -543,8 +559,10 @@ body.mobile-body {
 /* Telemetry Grid */
 .telemetry-mobile-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .metric-box {
@@ -555,6 +573,9 @@ body.mobile-body {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .metric-box.full-width {
@@ -725,12 +746,17 @@ input:checked + .toggle-slider:before {
 
 .cam-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .cam-pill {
-  padding: 10px 6px;
+  padding: 10px 4px;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 10px;
@@ -739,6 +765,9 @@ input:checked + .toggle-slider:before {
   font-weight: 600;
   cursor: pointer;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .cam-pill:active {
@@ -778,11 +807,14 @@ input:checked + .toggle-slider:before {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 16px;
-  padding: 14px 16px;
+  padding: 14px 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   margin-top: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .remote-fp-header {
@@ -791,16 +823,20 @@ input:checked + .toggle-slider:before {
   justify-content: space-between;
   cursor: pointer;
   user-select: none;
+  gap: 8px;
 }
 
 .remote-fp-header-left {
   display: flex;
   align-items: center;
   gap: 10px;
+  min-width: 0;
+  flex: 1 1 0%;
 }
 
 .remote-fp-icon {
   font-size: 18px;
+  flex-shrink: 0;
 }
 
 .remote-fp-title {
@@ -808,6 +844,9 @@ input:checked + .toggle-slider:before {
   font-weight: 700;
   letter-spacing: 0.8px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .remote-fp-sub {
@@ -816,12 +855,17 @@ input:checked + .toggle-slider:before {
   font-weight: 700;
   color: var(--accent-cyan, #00e5ff);
   margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .remote-fp-chevron {
   font-size: 12px;
   color: var(--text-muted);
   transition: transform 0.25s ease;
+  flex-shrink: 0;
 }
 
 .remote-fp-chevron.expanded {
@@ -835,6 +879,9 @@ input:checked + .toggle-slider:before {
   gap: 10px;
   padding-top: 10px;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .remote-fp-body.collapsed {
@@ -850,8 +897,10 @@ input:checked + .toggle-slider:before {
 
 .remote-fp-presets-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .mobile-preset-pill {
@@ -865,6 +914,10 @@ input:checked + .toggle-slider:before {
   cursor: pointer;
   text-align: left;
   transition: all 0.2s ease;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .mobile-preset-pill:active {
@@ -891,6 +944,7 @@ input:checked + .toggle-slider:before {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  min-width: 0;
 }
 
 .m-pill-flight {
@@ -898,10 +952,14 @@ input:checked + .toggle-slider:before {
   font-size: 12px;
   font-weight: 700;
   color: var(--accent-cyan);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .m-pill-star {
   font-size: 10px;
+  flex-shrink: 0;
 }
 
 .m-pill-route {
@@ -909,53 +967,99 @@ input:checked + .toggle-slider:before {
   font-weight: 700;
   color: #ffffff;
   margin: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .m-pill-airline {
   font-size: 10px;
   color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .remote-fp-inputs-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.remote-fp-field {
+  flex: 1 1 0%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-sizing: border-box;
+}
+
+.remote-fp-field-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  color: var(--text-muted);
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .remote-fp-input {
-  flex: 1;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   font-family: var(--font-mono);
-  font-size: 14px;
+  font-size: 16px; /* Prevents auto-zoom on iOS Safari */
   font-weight: 700;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: 1px;
-  padding: 10px 8px;
+  letter-spacing: 2px;
+  padding: 10px 4px;
   background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(0, 229, 255, 0.25);
+  border: 1px solid rgba(0, 229, 255, 0.3);
   border-radius: 10px;
   color: #ffffff;
   outline: none;
+  transition: all 0.2s ease;
 }
 
 .remote-fp-input:focus {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.35);
+  background: rgba(0, 229, 255, 0.08);
+}
+
+.remote-fp-arrow-wrap {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 15px; /* Aligns with input centers below field tags */
 }
 
 .remote-fp-arrow {
   color: var(--accent-cyan);
-  font-weight: 700;
+  font-weight: 800;
   font-size: 16px;
+  opacity: 0.85;
 }
 
 .remote-fp-actions-row {
   display: flex;
+  align-items: center;
   gap: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 2px;
 }
 
 .btn-remote-fav {
-  padding: 10px 14px;
+  flex: 0 0 auto;
+  padding: 11px 12px;
   background: rgba(255, 176, 0, 0.12);
   border: 1px solid rgba(255, 176, 0, 0.4);
   color: #fde047;
@@ -963,16 +1067,24 @@ input:checked + .toggle-slider:before {
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .btn-remote-fav:active {
   background: rgba(255, 176, 0, 0.25);
+  transform: scale(0.97);
 }
 
 .btn-remote-send {
-  flex: 1;
-  padding: 10px 14px;
+  flex: 1 1 0%;
+  min-width: 0;
+  padding: 11px 12px;
   background: linear-gradient(135deg, rgba(0, 229, 255, 0.25), rgba(0, 153, 204, 0.35));
   border: 1px solid var(--accent-cyan);
   color: #ffffff;
@@ -980,12 +1092,20 @@ input:checked + .toggle-slider:before {
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .btn-remote-send:active {
-  background: var(--accent-cyan);
-  color: #02060d;
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.4), rgba(0, 153, 204, 0.55));
+  transform: scale(0.98);
 }
 
 .remote-fp-feedback {
