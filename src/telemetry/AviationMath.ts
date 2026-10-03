@@ -28,6 +28,7 @@ export class AviationMath {
   public static readonly EARTH_RADIUS_NM = 3440.065;
   public static readonly EARTH_RADIUS_KM = 6371.0;
   public static readonly FEET_PER_METER = 3.28084;
+  public static readonly MPS_TO_KNOTS = 1.94384;
   public static readonly KNOTS_TO_KMH = 1.852;
   public static readonly KNOTS_TO_MPH = 1.15078;
 

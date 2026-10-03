@@ -87,9 +87,36 @@ async function bootstrap() {
     flightHud.setCameraMode(mode as any);
   });
 
-  // Standalone map mode: use this device's own GNSS and keep the screen awake.
+  // On localhost, unregister any stale service workers and clear cache storage
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        for (const reg of registrations) {
+          reg.unregister();
+        }
+      });
+      if ('caches' in window) {
+        caches.keys().then((keys) => {
+          for (const key of keys) {
+            caches.delete(key);
+          }
+        });
+      }
+    }
+  } else if ('serviceWorker' in navigator) {
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    });
+  }
+
+  // Standalone map mode: only auto-enable browser GPS if NOT running on the local laptop relay server
+  const isLocalServer = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
   const appMode = getMode();
-  if (appMode === 'map') {
+  if (appMode === 'map' && !isLocalServer) {
     if ('geolocation' in navigator) {
       telemetry.setSource('browser_gps');
     }

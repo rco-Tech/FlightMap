@@ -336,12 +336,13 @@ export class TelemetryManager {
               // Received live GPS fix from mobile phone!
               this.phoneConnected = true;
               this.activeSource = 'mobile_gps';
+              this.stopBrowserGeolocation(); // Stop laptop browser location so it does not fight phone GNSS
               this.simIsPaused = true;
               this.ingestGpsUpdate({
                 lat: msg.lat,
                 lon: msg.lon,
                 altitude: msg.altitude ? Math.round(msg.altitude * AviationMath.FEET_PER_METER) : undefined,
-                groundSpeed: msg.speed ? Math.round(msg.speed * AviationMath.KNOTS_TO_KMH) : undefined, // m/s to knots
+                groundSpeed: msg.speed ? Math.round(msg.speed * AviationMath.MPS_TO_KNOTS) : undefined, // m/s to knots
                 heading: msg.heading !== null && msg.heading !== undefined ? msg.heading : undefined,
                 pitch: msg.pitch,
                 roll: msg.roll,

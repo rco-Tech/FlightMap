@@ -82,13 +82,38 @@ function buildMobileUrls(ip) {
 let currentPrimaryIp = getPrimaryIp();
 let httpsServer = null;
 
-// Serve built frontend assets
+// Serve built frontend assets with strict no-cache for entry HTML and Service Worker
 const distDir = path.join(rootDir, 'dist');
+
+app.use((req, res, next) => {
+  const p = req.path.toLowerCase();
+  if (
+    p === '/' ||
+    p === '/flightmap' ||
+    p === '/flightmap/' ||
+    p.endsWith('.html') ||
+    p.includes('sw.js') ||
+    p.includes('registersw') ||
+    p.endsWith('.webmanifest')
+  ) {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 app.use('/FlightMap', express.static(distDir));
 app.use(express.static(distDir));
 app.use('/FlightMap/assets', express.static(path.join(distDir, 'assets')));
-app.get(['/start.html', '/FlightMap/start.html'], (req, res) => res.sendFile(path.join(distDir, 'start.html')));
-app.get(['/mobile.html', '/FlightMap/mobile.html'], (req, res) => res.sendFile(path.join(distDir, 'mobile.html')));
+app.get(['/start.html', '/FlightMap/start.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.sendFile(path.join(distDir, 'start.html'));
+});
+app.get(['/mobile.html', '/FlightMap/mobile.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+  res.sendFile(path.join(distDir, 'mobile.html'));
+});
 app.use('/assets', express.static(path.join(rootDir, 'public', 'assets')));
 
 // API: Get mobile pairing URLs (recomputed live so it follows Wi-Fi <-> hotspot changes)
@@ -131,6 +156,7 @@ app.get('/api/pair-qr', async (req, res) => {
 
 // Serve mobile page explicitly
 app.get('/mobile.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
   res.sendFile(path.join(distDir, 'mobile.html'));
 });
 
@@ -139,6 +165,7 @@ app.get('*', (req, res) => {
   if (/\.(js|css|png|jpg|jpeg|svg|json|geojson|woff2|ico|webmanifest)$/i.test(req.path)) {
     return res.status(404).send('Asset not found');
   }
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
   res.sendFile(path.join(distDir, 'index.html'));
 });
 
