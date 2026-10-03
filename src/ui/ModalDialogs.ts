@@ -237,8 +237,11 @@ export class ModalDialogs {
                 <div class="qr-url"><a href="${mobileUrl}" target="_blank">${mobileUrl}</a></div>
               </div>
               <div class="source-status" id="mobile-gps-status">
-                ${currentSource === 'mobile_gps' ? '🟢 Actively receiving phone telemetry' : '⚪ Waiting for phone connection'}
+                ${currentSource === 'mobile_gps' ? '🟢 Actively receiving phone telemetry' : (this.telemetryManager.isPhoneConnected() ? '🟡 Phone connected to relay hub' : '⚪ Waiting for phone connection')}
               </div>
+              <button class="btn-action" id="btn-enable-mobile-gps">
+                ${currentSource === 'mobile_gps' ? '✓ Currently Active' : 'Switch to Mobile GPS'}
+              </button>
             </div>
 
             <!-- Laptop Browser Geolocation -->
@@ -302,25 +305,67 @@ export class ModalDialogs {
 
     document.body.appendChild(modal);
 
-    document.getElementById('btn-close-gps')?.addEventListener('click', () => modal.remove());
-    document.getElementById('btn-close-gps-footer')?.addEventListener('click', () => modal.remove());
+    // Dynamic real-time phone status update while dialog is open
+    const unsubscribePhone = this.telemetryManager.onPhoneStatus((connected, active) => {
+      const statusEl = document.getElementById('mobile-gps-status');
+      const cardMobile = document.getElementById('card-mobile-gps');
+      const btnMobile = document.getElementById('btn-enable-mobile-gps');
+      const isMobileActive = this.telemetryManager.getSource() === 'mobile_gps';
+
+      if (statusEl) {
+        if (isMobileActive || active) {
+          statusEl.textContent = '🟢 Actively receiving phone satellite telemetry';
+          statusEl.style.color = 'var(--accent-green, #00ff66)';
+        } else if (connected) {
+          statusEl.textContent = '🟡 Phone connected to relay hub • Transmitting fixes';
+          statusEl.style.color = 'var(--accent-gold, #ffb000)';
+        } else {
+          statusEl.textContent = '⚪ Waiting for phone connection';
+          statusEl.style.color = '';
+        }
+      }
+
+      if (cardMobile && btnMobile) {
+        if (isMobileActive) {
+          cardMobile.classList.add('active');
+          btnMobile.textContent = '✓ Currently Active';
+        } else {
+          cardMobile.classList.remove('active');
+          btnMobile.textContent = 'Switch to Mobile GPS';
+        }
+      }
+    });
+
+    const closeModal = () => {
+      unsubscribePhone();
+      modal.remove();
+    };
+
+    document.getElementById('btn-close-gps')?.addEventListener('click', closeModal);
+    document.getElementById('btn-close-gps-footer')?.addEventListener('click', closeModal);
+
+    // Switch to Mobile GPS
+    document.getElementById('btn-enable-mobile-gps')?.addEventListener('click', () => {
+      this.telemetryManager.setSource('mobile_gps');
+      closeModal();
+    });
 
     // Switch to Browser GPS
     document.getElementById('btn-enable-browser-gps')?.addEventListener('click', () => {
       this.telemetryManager.setSource('browser_gps');
-      modal.remove();
+      closeModal();
     });
 
     // Switch to Serial NMEA
     document.getElementById('btn-connect-serial')?.addEventListener('click', async () => {
       const ok = await this.telemetryManager.connectSerialGps();
-      if (ok) modal.remove();
+      if (ok) closeModal();
     });
 
     // Switch to Simulation
     document.getElementById('btn-enable-simulation')?.addEventListener('click', () => {
       this.telemetryManager.setSource('simulation');
-      modal.remove();
+      closeModal();
     });
 
     // Sim speed pills

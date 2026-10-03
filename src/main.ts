@@ -80,7 +80,12 @@ async function bootstrap() {
   });
 
   // 3. Initialize In-Flight Entertainment (IFE) HUD UI immediately
-  new FlightHud(hudContainer, cameraManager, globeScene);
+  const flightHud = new FlightHud(hudContainer, cameraManager, globeScene);
+
+  // Connect remote camera switching from mobile phone copilot
+  telemetry.onCameraCommand((mode) => {
+    flightHud.setCameraMode(mode as any);
+  });
 
   // Standalone map mode: use this device's own GNSS and keep the screen awake.
   const appMode = getMode();

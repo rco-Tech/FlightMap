@@ -1,6 +1,5 @@
 import { AviationMath, ISAAtmosphere } from './AviationMath';
 import { FlightPlanManager } from './FlightPlan';
-import { getMode } from '../mode';
 
 export type TelemetrySource = 'simulation' | 'mobile_gps' | 'browser_gps' | 'serial_nmea';
 
@@ -50,6 +49,40 @@ export class TelemetryManager {
   private ws: WebSocket | null = null;
   private wsConnected: boolean = false;
   private relayEnabled: boolean = true;
+  private phoneConnected: boolean = false;
+  private phoneListeners: ((connected: boolean, active: boolean) => void)[] = [];
+  private cameraListeners: ((mode: string) => void)[] = [];
+
+  public onCameraCommand(callback: (mode: string) => void): () => void {
+    this.cameraListeners.push(callback);
+    return () => {
+      this.cameraListeners = this.cameraListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public broadcastCameraMode(mode: string): void {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+      try {
+        this.ws.send(JSON.stringify({
+          type: 'camera_active',
+          mode,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+    }
+  }
+
+  public onPhoneStatus(callback: (connected: boolean, active: boolean) => void): () => void {
+    this.phoneListeners.push(callback);
+    callback(this.phoneConnected, this.activeSource === 'mobile_gps');
+    return () => {
+      this.phoneListeners = this.phoneListeners.filter((cb) => cb !== callback);
+    };
+  }
+
+  public isPhoneConnected(): boolean {
+    return this.phoneConnected;
+  }
 
   /**
    * Standalone map mode does not talk to a laptop relay, so skip the WebSocket
@@ -111,12 +144,9 @@ export class TelemetryManager {
       timestamp: Date.now()
     };
 
-    this.relayEnabled = getMode() !== 'map';
-    if (this.relayEnabled) {
-      this.initWebSocket();
-    } else {
-      console.log('[TelemetryManager] Standalone map mode - relay WebSocket disabled.');
-    }
+    // Always enable relay WebSocket on the desktop/laptop map display
+    this.relayEnabled = true;
+    this.initWebSocket();
     this.startSimulationLoop();
   }
 
@@ -139,6 +169,12 @@ export class TelemetryManager {
     if (this.activeSource === source) return;
     this.activeSource = source;
 
+    if (source === 'mobile_gps') {
+      if (!this.wsConnected) {
+        this.initWebSocket();
+      }
+    }
+
     if (source === 'browser_gps') {
       this.startBrowserGeolocation();
     } else {
@@ -150,6 +186,16 @@ export class TelemetryManager {
     } else {
       this.simIsPaused = false;
     }
+
+    for (const cb of this.phoneListeners) {
+      cb(this.phoneConnected, this.activeSource === 'mobile_gps');
+    }
+
+    this.state = {
+      ...this.state,
+      source: this.activeSource
+    };
+    this.emitState();
   }
 
   public subscribe(callback: (state: TelemetryState) => void): () => void {
@@ -265,13 +311,30 @@ export class TelemetryManager {
         this.ws.onopen = () => {
           this.wsConnected = true;
           console.log('[TelemetryManager] WebSocket connected to relay hub');
+          // Announce that the laptop 3D moving map is actively listening
+          try {
+            this.ws?.send(JSON.stringify({
+              type: 'client_hello',
+              role: 'laptop',
+              name: 'FlightMap 3D Moving Map'
+            }));
+          } catch (e) {}
         };
 
         this.ws.onmessage = (event) => {
           try {
             const msg = JSON.parse(event.data);
+
+            if (msg.type === 'peer_status' || msg.type === 'server_hello') {
+              this.phoneConnected = Boolean(msg.phoneOnline);
+              for (const cb of this.phoneListeners) {
+                cb(this.phoneConnected, this.activeSource === 'mobile_gps');
+              }
+            }
+
             if (msg.type === 'gps_update') {
               // Received live GPS fix from mobile phone!
+              this.phoneConnected = true;
               this.activeSource = 'mobile_gps';
               this.simIsPaused = true;
               this.ingestGpsUpdate({
@@ -285,6 +348,34 @@ export class TelemetryManager {
                 gpsAccuracyMeters: msg.accuracy,
                 source: 'mobile_gps'
               });
+
+              for (const cb of this.phoneListeners) {
+                cb(true, true);
+              }
+
+              // Send laptop acknowledgement directly back to phone transmitter
+              try {
+                this.ws?.send(JSON.stringify({
+                  type: 'laptop_ack',
+                  packetId: msg.timestamp,
+                  receivedAt: Date.now()
+                }));
+              } catch (e) {}
+            }
+
+            if (msg.type === 'camera_command' && msg.mode) {
+              console.log('[TelemetryManager] Received remote camera command from phone:', msg.mode);
+              for (const cb of this.cameraListeners) {
+                cb(msg.mode);
+              }
+              // Send camera acknowledgement back to phone
+              try {
+                this.ws?.send(JSON.stringify({
+                  type: 'camera_ack',
+                  mode: msg.mode,
+                  timestamp: Date.now()
+                }));
+              } catch (e) {}
             }
           } catch (e) {
             console.error('[TelemetryManager] Error parsing WS message:', e);
@@ -293,6 +384,10 @@ export class TelemetryManager {
 
         this.ws.onclose = () => {
           this.wsConnected = false;
+          this.phoneConnected = false;
+          for (const cb of this.phoneListeners) {
+            cb(false, this.activeSource === 'mobile_gps');
+          }
           if (this.relayEnabled) setTimeout(connect, 3000); // auto reconnect
         };
       } catch (e) {

@@ -71,10 +71,11 @@ function getPrimaryIp() {
 }
 
 function buildMobileUrls(ip) {
+  const hostParam = `${ip}:${HTTPS_PORT}`;
   return {
     ip,
-    httpsUrl: `https://${ip}:${HTTPS_PORT}/mobile.html`,
-    httpUrl: `http://${ip}:${HTTP_PORT}/mobile.html`
+    httpsUrl: `https://${ip}:${HTTPS_PORT}/mobile.html?host=${encodeURIComponent(hostParam)}`,
+    httpUrl: `http://${ip}:${HTTP_PORT}/mobile.html?host=${encodeURIComponent(`${ip}:${HTTP_PORT}`)}`
   };
 }
 
@@ -143,15 +144,125 @@ app.get('*', (req, res) => {
 
 // Unified WebSocket Client Set
 const clients = new Set();
+let lastGpsLog = 0;
+
+function isLaptopOnline() {
+  for (const client of clients) {
+    if (client.role === 'laptop' && client.readyState === WebSocket.OPEN) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function isPhoneOnline() {
+  for (const client of clients) {
+    if (client.role === 'phone' && client.readyState === WebSocket.OPEN) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function broadcastPeerStatus() {
+  const laptopOnline = isLaptopOnline();
+  const phoneOnline = isPhoneOnline();
+  const payload = JSON.stringify({
+    type: 'peer_status',
+    laptopOnline,
+    phoneOnline,
+    totalClients: clients.size,
+    serverIp: getPrimaryIp(),
+    timestamp: Date.now()
+  });
+  for (const client of clients) {
+    if (client.readyState === WebSocket.OPEN) {
+      try {
+        client.send(payload);
+      } catch (e) {}
+    }
+  }
+}
 
 function setupWebSocket(wss) {
   wss.on('connection', (ws, req) => {
+    ws.role = 'unknown';
+    ws.remoteAddress = req.socket.remoteAddress || 'unknown';
     clients.add(ws);
-    console.log(`[WebSocket] Client connected from ${req.socket.remoteAddress} (Active: ${clients.size})`);
+    console.log(`[WebSocket] Client connected from ${ws.remoteAddress} (Total clients: ${clients.size})`);
+
+    // Immediate server greeting / handshake
+    try {
+      ws.send(JSON.stringify({
+        type: 'server_hello',
+        serverIp: getPrimaryIp(),
+        httpPort: HTTP_PORT,
+        httpsPort: HTTPS_PORT,
+        laptopOnline: isLaptopOnline(),
+        totalClients: clients.size,
+        timestamp: Date.now()
+      }));
+    } catch (e) {}
+
+    // Announce peer status
+    broadcastPeerStatus();
 
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
+
+        // Client role identification
+        if (data.type === 'client_hello') {
+          ws.role = data.role || 'unknown';
+          console.log(`[WebSocket] Client identified role: "${ws.role}" from ${ws.remoteAddress}`);
+          try {
+            ws.send(JSON.stringify({
+              type: 'hello_ack',
+              role: ws.role,
+              laptopOnline: isLaptopOnline(),
+              serverIp: getPrimaryIp(),
+              timestamp: Date.now()
+            }));
+          } catch (e) {}
+          broadcastPeerStatus();
+          return;
+        }
+
+        // Heartbeat keepalive ping
+        if (data.type === 'ping') {
+          try {
+            ws.send(JSON.stringify({
+              type: 'pong',
+              clientTimestamp: data.timestamp,
+              serverTimestamp: Date.now(),
+              laptopOnline: isLaptopOnline()
+            }));
+          } catch (e) {}
+          return;
+        }
+
+        // GPS Telemetry packet from mobile phone
+        if (data.type === 'gps_update') {
+          ws.role = 'phone';
+          const laptopOnline = isLaptopOnline();
+
+          // Immediate ACK to phone transmitter
+          try {
+            ws.send(JSON.stringify({
+              type: 'gps_ack',
+              packetId: data.timestamp,
+              laptopOnline,
+              serverTimestamp: Date.now()
+            }));
+          } catch (e) {}
+
+          // Throttle telemetry console logging to avoid terminal spam
+          const now = Date.now();
+          if (now - lastGpsLog > 3000) {
+            lastGpsLog = now;
+            console.log(`[Telemetry] GNSS fix from phone: ${data.lat?.toFixed(5)}°, ${data.lon?.toFixed(5)}° | Alt: ${data.altitude || 0}m | Spd: ${Math.round(data.speed || 0)}m/s -> ${laptopOnline ? 'Delivered to Laptop 3D Map' : 'Buffered (Laptop display not open yet)'}`);
+          }
+        }
 
         // Broadcast telemetry or camera commands to all other connected clients
         for (const client of clients) {
@@ -164,9 +275,14 @@ function setupWebSocket(wss) {
       }
     });
 
+    ws.on('error', (err) => {
+      console.warn(`[WebSocket] Client error from ${ws.remoteAddress}:`, err.message);
+    });
+
     ws.on('close', () => {
       clients.delete(ws);
-      console.log(`[WebSocket] Client disconnected (Active: ${clients.size})`);
+      console.log(`[WebSocket] Client disconnected from ${ws.remoteAddress} (Total clients: ${clients.size})`);
+      broadcastPeerStatus();
     });
   });
 }

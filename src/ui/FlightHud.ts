@@ -254,20 +254,33 @@ export class FlightHud {
     `;
   }
 
+  public setCameraMode(mode: CameraMode): void {
+    this.container.querySelectorAll('.cam-btn').forEach((b) => {
+      if ((b as HTMLElement).dataset.cam === mode) {
+        b.classList.add('active');
+      } else {
+        b.classList.remove('active');
+      }
+    });
+    this.cameraManager.setMode(mode);
+    if (mode === 'orbit') {
+      const activePlan = this.flightPlanManager.getActivePlan();
+      if (activePlan) {
+        this.cameraManager.frameRouteOverview(activePlan);
+      }
+    }
+  }
+
   private initEventListeners(): void {
     // Camera buttons
     this.container.querySelectorAll('.cam-btn').forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        this.container.querySelectorAll('.cam-btn').forEach((b) => b.classList.remove('active'));
         const target = (e.currentTarget as HTMLElement);
-        target.classList.add('active');
         const mode = target.dataset.cam as CameraMode;
-        this.cameraManager.setMode(mode);
-        if (mode === 'orbit') {
-          const activePlan = this.flightPlanManager.getActivePlan();
-          if (activePlan) {
-            this.cameraManager.frameRouteOverview(activePlan);
-          }
+        if (mode) {
+          this.setCameraMode(mode);
+          // Broadcast active camera to mobile phones
+          TelemetryManager.getInstance().broadcastCameraMode(mode);
         }
       });
     });

@@ -1,8 +1,18 @@
 import './mobile.css';
 
+type ConnectionState = 'laptop_connected' | 'relay_connected' | 'connecting' | 'offline';
+
 class MobileController {
   private ws: WebSocket | null = null;
   private isWsConnected: boolean = false;
+  private isLaptopOnline: boolean = false;
+  private targetHost: string = '';
+  private packetsSent: number = 0;
+  private packetsAcked: number = 0;
+  private lastLatencyMs: number | null = null;
+  private pingTimer: number | null = null;
+  private reconnectTimer: number | null = null;
+
   private isTransmitting: boolean = false;
   private isSimulating: boolean = false;
   private simTimer: number | null = null;
@@ -21,7 +31,6 @@ class MobileController {
   private lastSpeed: number = 0;
   private lastHeading: number = 0;
   private lastAccuracy: number = 0;
-  private packetsSent: number = 0;
 
   // Simulated flight progress for testing
   private simLat: number = 51.47;
@@ -31,10 +40,32 @@ class MobileController {
   private simHdg: number = 285;
 
   constructor() {
+    this.targetHost = this.resolveTargetHost();
     this.render();
     this.initWebSocket();
     this.initEvents();
     this.checkSecureContext();
+  }
+
+  private resolveTargetHost(): string {
+    const params = new URLSearchParams(window.location.search);
+    const hostFromQuery = params.get('host') || params.get('server');
+    if (hostFromQuery) {
+      const clean = hostFromQuery.replace(/^[a-z]+:\/\//i, '').replace(/\/.*$/, '');
+      localStorage.setItem('flightmap_target_host', clean);
+      return clean;
+    }
+
+    const saved = localStorage.getItem('flightmap_target_host');
+    if (saved) return saved;
+
+    const currentHost = window.location.host;
+    // Don't default to github.io since static hosting has no WebSocket relay
+    if (currentHost && !currentHost.includes('github.io')) {
+      return currentHost;
+    }
+
+    return '192.168.1.98:3443';
   }
 
   private checkSecureContext(): void {
@@ -65,19 +96,98 @@ class MobileController {
           <button class="btn-switch-https" id="btn-switch-https">Switch to HTTPS (Port 3443)</button>
         </div>
 
-        <!-- Header -->
+        <!-- Sticky Header with Real-Time Handshake Status -->
         <header class="mobile-header">
           <div class="mobile-title">
             <span>FLIGHTMAP COPILOT</span>
-            <h1>Mobile GPS Relay</h1>
+            <h1>GPS Relay</h1>
           </div>
-          <div class="conn-badge">
+          <div class="conn-badge" id="btn-header-badge" title="Tap to configure PC Connection">
             <span class="conn-dot" id="ws-dot"></span>
-            <span id="ws-status-text">OFFLINE</span>
+            <span id="ws-status-text">CONNECTING...</span>
           </div>
         </header>
 
-        <button class="switch-mode-btn" id="btn-switch-mode">\u{1F9ED} Switch Mode</button>
+        <!-- Dedicated Handshake & Connection Card -->
+        <div class="handshake-card state-connecting" id="handshake-card">
+          <div class="handshake-status-banner">
+            <div class="handshake-icon" id="hs-status-icon">🔄</div>
+            <div class="handshake-info">
+              <div class="handshake-title" id="hs-status-title">Connecting to Laptop...</div>
+              <div class="handshake-desc" id="hs-status-desc">
+                Establishing WebSocket handshake with ${this.targetHost}...
+              </div>
+            </div>
+          </div>
+
+          <!-- 4-Metric Live Handshake Readout -->
+          <div class="handshake-metrics-grid">
+            <div class="hs-metric">
+              <span class="hs-label">TARGET PC HOST</span>
+              <span class="hs-val highlight" id="hs-target-host">${this.targetHost}</span>
+            </div>
+            <div class="hs-metric">
+              <span class="hs-label">ROUNDTRIP PING</span>
+              <span class="hs-val" id="hs-latency">--</span>
+            </div>
+            <div class="hs-metric">
+              <span class="hs-label">PACKETS TRANSMITTED</span>
+              <span class="hs-val" id="hs-packets-sent">0</span>
+            </div>
+            <div class="hs-metric">
+              <span class="hs-label">LAPTOP ACKS</span>
+              <span class="hs-val success" id="hs-packets-acked">0</span>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="hs-actions-row">
+            <button class="hs-btn-action" id="btn-toggle-ip-drawer">
+              <span>⚙️</span>
+              <span id="label-toggle-ip">Change PC IP</span>
+            </button>
+            <button class="hs-btn-action" id="btn-reconnect-now">
+              <span>🔄</span>
+              <span>Reconnect Now</span>
+            </button>
+          </div>
+
+          <!-- Inline IP Configuration Drawer -->
+          <div class="ip-config-drawer hidden" id="ip-config-drawer">
+            <div class="ip-config-title">CONFIGURE LAPTOP IP ADDRESS</div>
+            <div class="ip-input-row">
+              <input
+                type="text"
+                class="ip-input"
+                id="input-pc-ip"
+                value="${this.targetHost}"
+                placeholder="e.g. 192.168.1.98:3443"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button class="btn-save-ip" id="btn-save-ip">Connect</button>
+            </div>
+            <div class="ip-preset-chips" id="ip-preset-chips">
+              <span class="ip-chip" data-host="192.168.1.98:3443">🏠 WiFi (192.168.1.98:3443)</span>
+              <span class="ip-chip" data-host="172.20.10.1:3443">📱 iPhone (172.20.10.1:3443)</span>
+              <span class="ip-chip" data-host="192.168.43.1:3443">🤖 Android (192.168.43.1:3443)</span>
+              <span class="ip-chip" data-host="192.168.137.1:3443">💻 Win Hotspot (192.168.137.1:3443)</span>
+              <span class="ip-chip" data-host="192.168.1.98:3000">⚡ HTTP Port 3000</span>
+            </div>
+          </div>
+
+          <!-- SSL Certificate Acceptance Helper -->
+          <div class="ssl-helper-card hidden" id="ssl-helper-card">
+            <div class="ssl-helper-text">
+              🔒 <strong>First time on local HTTPS?</strong> Mobile Chrome and Safari require accepting our self-signed TLS certificate once before allowing WebSockets:
+            </div>
+            <a href="https://${this.targetHost}/" target="_blank" class="btn-accept-ssl" id="link-accept-ssl">
+              <span>👉 Open Certificate Authorization Page</span>
+            </a>
+          </div>
+        </div>
+
+        <button class="switch-mode-btn" id="btn-switch-mode">🧭 Switch Operating Mode</button>
 
         <!-- Transmit Button Card -->
         <div class="transmit-card">
@@ -169,43 +279,260 @@ class MobileController {
   }
 
   private initWebSocket(): void {
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/telemetry`;
-
-    const connect = () => {
+    if (this.ws) {
       try {
-        this.ws = new WebSocket(wsUrl);
+        this.ws.onopen = null;
+        this.ws.onclose = null;
+        this.ws.onerror = null;
+        this.ws.onmessage = null;
+        this.ws.close();
+      } catch (e) {}
+      this.ws = null;
+    }
 
-        this.ws.onopen = () => {
-          this.isWsConnected = true;
-          this.updateConnectionStatus(true);
-        };
+    if (this.reconnectTimer !== null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
 
-        this.ws.onclose = () => {
-          this.isWsConnected = false;
-          this.updateConnectionStatus(false);
-          setTimeout(connect, 3000);
-        };
-      } catch (err) {
-        this.updateConnectionStatus(false);
-      }
-    };
+    const host = this.targetHost.trim();
+    const cleanHost = host.replace(/^[a-z]+:\/\//i, '').replace(/\/.*$/, '');
+    const protocol = window.location.protocol === 'https:' || cleanHost.includes(':3443') ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${cleanHost}/ws/telemetry`;
 
-    connect();
+    this.updateHandshakeUI('connecting', `Connecting to ${cleanHost}...`);
+
+    try {
+      this.ws = new WebSocket(wsUrl);
+
+      this.ws.onopen = () => {
+        this.isWsConnected = true;
+        console.log('[Mobile] Connected to telemetry relay:', wsUrl);
+
+        // Immediate client hello identifying as phone transmitter
+        try {
+          this.ws?.send(
+            JSON.stringify({
+              type: 'client_hello',
+              role: 'phone',
+              client: 'FlightMap Mobile GNSS Transmitter'
+            })
+          );
+        } catch (e) {}
+
+        this.startHeartbeat();
+        this.updateHandshakeUI('relay_connected', `Connected to Relay (${cleanHost})`);
+        this.updateTransmitCounter(true);
+      };
+
+      this.ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          this.handleServerMessage(msg);
+        } catch (e) {
+          console.warn('[Mobile] Error parsing message:', e);
+        }
+      };
+
+      this.ws.onerror = (err) => {
+        console.warn('[Mobile] WebSocket error:', err);
+      };
+
+      this.ws.onclose = () => {
+        this.isWsConnected = false;
+        this.isLaptopOnline = false;
+        this.stopHeartbeat();
+        this.updateHandshakeUI('offline', `Disconnected from ${cleanHost}`);
+        this.updateTransmitCounter(false);
+
+        // Auto-reconnect after 3.5s
+        this.reconnectTimer = window.setTimeout(() => this.initWebSocket(), 3500);
+      };
+    } catch (err) {
+      this.isWsConnected = false;
+      this.isLaptopOnline = false;
+      this.updateHandshakeUI('offline', `Failed to open socket to ${cleanHost}`);
+      this.updateTransmitCounter(false);
+      this.reconnectTimer = window.setTimeout(() => this.initWebSocket(), 4000);
+    }
   }
 
-  private updateConnectionStatus(online: boolean): void {
-    const dot = document.getElementById('ws-dot');
-    const text = document.getElementById('ws-status-text');
-    if (dot && text) {
-      if (online) {
-        dot.className = 'conn-dot online';
-        text.textContent = 'CONNECTED';
+  private handleServerMessage(msg: any): void {
+    if (msg.type === 'server_hello' || msg.type === 'hello_ack' || msg.type === 'peer_status') {
+      if (msg.serverIp) {
+        this.updateDetectedIpChips(msg.serverIp);
+      }
+      this.isLaptopOnline = Boolean(msg.laptopOnline);
+
+      if (this.isLaptopOnline) {
+        this.updateHandshakeUI('laptop_connected', `Connected to Laptop (${this.targetHost})`);
       } else {
-        dot.className = 'conn-dot';
-        text.textContent = 'OFFLINE';
+        this.updateHandshakeUI('relay_connected', `Relay Online • Waiting for Laptop Map`);
+      }
+      this.updateTransmitCounter(true);
+    }
+
+    if (msg.type === 'pong') {
+      if (msg.clientTimestamp) {
+        this.lastLatencyMs = Math.max(1, Date.now() - msg.clientTimestamp);
+      }
+      if (msg.laptopOnline !== undefined) {
+        this.isLaptopOnline = Boolean(msg.laptopOnline);
+      }
+      this.updateHandshakeStats();
+      this.updateTransmitCounter(true);
+    }
+
+    if (msg.type === 'gps_ack' || msg.type === 'laptop_ack') {
+      this.packetsAcked++;
+      if (msg.laptopOnline) this.isLaptopOnline = true;
+      this.updateHandshakeStats(true); // pulse ACK badge
+      this.updateTransmitCounter(true);
+    }
+
+    if (msg.type === 'camera_ack' || msg.type === 'camera_active') {
+      if (msg.mode) this.setActiveCameraPill(msg.mode);
+    }
+  }
+
+  private startHeartbeat(): void {
+    this.stopHeartbeat();
+    this.pingTimer = window.setInterval(() => {
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        try {
+          this.ws.send(
+            JSON.stringify({
+              type: 'ping',
+              timestamp: Date.now()
+            })
+          );
+        } catch (e) {}
+      }
+    }, 2500);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.pingTimer !== null) {
+      clearInterval(this.pingTimer);
+      this.pingTimer = null;
+    }
+  }
+
+  private updateHandshakeUI(state: ConnectionState, detailText: string): void {
+    const card = document.getElementById('handshake-card');
+    const dot = document.getElementById('ws-dot');
+    const badgeText = document.getElementById('ws-status-text');
+    const icon = document.getElementById('hs-status-icon');
+    const title = document.getElementById('hs-status-title');
+    const desc = document.getElementById('hs-status-desc');
+    const sslHelper = document.getElementById('ssl-helper-card');
+    const sslLink = document.getElementById('link-accept-ssl') as HTMLAnchorElement;
+
+    if (card) {
+      card.className = `handshake-card state-${state}`;
+    }
+
+    if (sslHelper && sslLink) {
+      if (state === 'offline' && (window.location.protocol === 'https:' || this.targetHost.includes(':3443'))) {
+        sslHelper.classList.remove('hidden');
+        sslLink.href = `https://${this.targetHost}/`;
+      } else {
+        sslHelper.classList.add('hidden');
       }
     }
+
+    if (dot && badgeText && icon && title && desc) {
+      switch (state) {
+        case 'laptop_connected':
+          dot.className = 'conn-dot online';
+          badgeText.textContent = 'PC SYNCED';
+          icon.textContent = '🟢';
+          title.textContent = `Connected to Laptop (${this.targetHost})`;
+          desc.textContent =
+            'Active bi-directional handshake verified! FlightMap 3D cockpit monitor is receiving your live GNSS telemetry.';
+          break;
+
+        case 'relay_connected':
+          dot.className = 'conn-dot relay';
+          badgeText.textContent = 'RELAY READY';
+          icon.textContent = '🟡';
+          title.textContent = 'Connected to Relay Server';
+          desc.textContent = `Connected to FlightMap server at ${this.targetHost}. Open http://localhost:3000 on your laptop to display moving map.`;
+          break;
+
+        case 'connecting':
+          dot.className = 'conn-dot connecting';
+          badgeText.textContent = 'CONNECTING...';
+          icon.textContent = '🔄';
+          title.textContent = `Connecting to ${this.targetHost}...`;
+          desc.textContent = detailText || 'Establishing WebSocket telemetry handshake...';
+          break;
+
+        case 'offline':
+        default:
+          dot.className = 'conn-dot';
+          badgeText.textContent = 'PC OFFLINE';
+          icon.textContent = '🔴';
+          title.textContent = `Disconnected from Laptop (${this.targetHost})`;
+          desc.textContent =
+            'Cannot reach PC. Ensure phone & PC are on the same Wi-Fi or Hotspot, or tap "Change PC IP" below.';
+          break;
+      }
+    }
+
+    this.updateHandshakeStats();
+  }
+
+  private updateHandshakeStats(pulseAck: boolean = false): void {
+    const elTarget = document.getElementById('hs-target-host');
+    const elLatency = document.getElementById('hs-latency');
+    const elSent = document.getElementById('hs-packets-sent');
+    const elAcked = document.getElementById('hs-packets-acked');
+
+    if (elTarget) elTarget.textContent = this.targetHost;
+    if (elLatency) {
+      elLatency.textContent = this.lastLatencyMs !== null ? `${this.lastLatencyMs} ms` : '--';
+    }
+    if (elSent) elSent.textContent = this.packetsSent.toString();
+    if (elAcked) {
+      elAcked.textContent = this.packetsAcked.toString();
+      if (pulseAck) {
+        elAcked.classList.remove('pulse');
+        void elAcked.offsetWidth; // trigger reflow
+        elAcked.classList.add('pulse');
+      }
+    }
+  }
+
+  private updateDetectedIpChips(serverIp: string): void {
+    const chipsContainer = document.getElementById('ip-preset-chips');
+    if (!chipsContainer || !serverIp) return;
+    const existing = chipsContainer.querySelector(`[data-host="${serverIp}:3443"]`);
+    if (!existing) {
+      const chip = document.createElement('span');
+      chip.className = 'ip-chip';
+      chip.setAttribute('data-host', `${serverIp}:3443`);
+      chip.textContent = `⚡ Server IP (${serverIp}:3443)`;
+      chip.addEventListener('click', () => {
+        this.setTargetHost(`${serverIp}:3443`);
+      });
+      chipsContainer.prepend(chip);
+    }
+  }
+
+  private setTargetHost(newHost: string): void {
+    const clean = newHost.trim().replace(/^[a-z]+:\/\//i, '').replace(/\/.*$/, '');
+    if (!clean) return;
+    this.targetHost = clean;
+    localStorage.setItem('flightmap_target_host', clean);
+
+    const input = document.getElementById('input-pc-ip') as HTMLInputElement;
+    if (input) input.value = clean;
+
+    const drawer = document.getElementById('ip-config-drawer');
+    if (drawer) drawer.classList.add('hidden');
+
+    this.initWebSocket();
   }
 
   private initEvents(): void {
@@ -218,6 +545,47 @@ class MobileController {
     document.getElementById('btn-switch-https')?.addEventListener('click', () => {
       const httpsUrl = `https://${window.location.hostname}:3443/mobile.html`;
       window.location.href = httpsUrl;
+    });
+
+    // Header badge click opens IP configuration drawer
+    document.getElementById('btn-header-badge')?.addEventListener('click', () => {
+      this.toggleIpDrawer();
+    });
+
+    // Toggle IP drawer button
+    document.getElementById('btn-toggle-ip-drawer')?.addEventListener('click', () => {
+      this.toggleIpDrawer();
+    });
+
+    // Reconnect now button
+    document.getElementById('btn-reconnect-now')?.addEventListener('click', () => {
+      this.initWebSocket();
+    });
+
+    // Save & Connect IP button
+    document.getElementById('btn-save-ip')?.addEventListener('click', () => {
+      const input = document.getElementById('input-pc-ip') as HTMLInputElement;
+      if (input && input.value) {
+        this.setTargetHost(input.value);
+      }
+    });
+
+    // Enter key inside IP input
+    document.getElementById('input-pc-ip')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        const input = document.getElementById('input-pc-ip') as HTMLInputElement;
+        if (input && input.value) {
+          this.setTargetHost(input.value);
+        }
+      }
+    });
+
+    // Preset IP chips click handlers
+    document.querySelectorAll('.ip-chip').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        const host = chip.getAttribute('data-host');
+        if (host) this.setTargetHost(host);
+      });
     });
 
     // Transmit button
@@ -249,17 +617,51 @@ class MobileController {
       }
     });
 
-    // Remote camera buttons
+    // Camera view switcher pills
     document.querySelectorAll('.cam-pill').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
-        const cam = (e.currentTarget as HTMLElement).dataset.cam;
-        if (this.ws && this.isWsConnected) {
-          this.ws.send(JSON.stringify({ type: 'set_camera', mode: cam }));
+      btn.addEventListener('click', () => {
+        const mode = btn.getAttribute('data-cam');
+        if (mode) {
+          this.setActiveCameraPill(mode);
+          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify({ type: 'camera_command', mode }));
+          }
         }
       });
     });
+
+    // Default active camera to Globe
+    this.setActiveCameraPill('orbit');
   }
 
+  private setActiveCameraPill(mode: string): void {
+    document.querySelectorAll('.cam-pill').forEach((b) => {
+      if (b.getAttribute('data-cam') === mode) {
+        b.classList.add('active');
+      } else {
+        b.classList.remove('active');
+      }
+    });
+  }
+
+  private toggleIpDrawer(): void {
+    const drawer = document.getElementById('ip-config-drawer');
+    const label = document.getElementById('label-toggle-ip');
+    if (drawer) {
+      const isHidden = drawer.classList.contains('hidden');
+      if (isHidden) {
+        drawer.classList.remove('hidden');
+        if (label) label.textContent = 'Close IP Config';
+        const input = document.getElementById('input-pc-ip') as HTMLInputElement;
+        input?.focus();
+      } else {
+        drawer.classList.add('hidden');
+        if (label) label.textContent = 'Change PC IP';
+      }
+    }
+  }
+
+  // --- Real Hardware Satellite GNSS Geolocation ---
   private async startTransmitting(): Promise<void> {
     if (this.isSimulating) {
       this.stopSimulation();
@@ -293,6 +695,7 @@ class MobileController {
     }
 
     this.setStatusMessage('📡 Requesting hardware GNSS satellite lock from device...');
+    this.updateTransmitCounter(this.isWsConnected);
 
     // Phase 1: Immediate coarse / network fix (<1 sec)
     navigator.geolocation.getCurrentPosition(
@@ -349,7 +752,6 @@ class MobileController {
         break;
       case 3: // TIMEOUT
         msg = '⏳ Satellite acquisition timed out. Retrying search...';
-        // Fallback to coarse position
         navigator.geolocation.getCurrentPosition(
           (pos) => this.handlePositionUpdate(pos, 'Coarse Network Fix'),
           () => {},
@@ -384,6 +786,7 @@ class MobileController {
     }
 
     this.setStatusMessage('GPS transmission paused.');
+    this.updateTransmitCounter(this.isWsConnected);
   }
 
   // --- Test Simulator (for indoor testing) ---
@@ -402,7 +805,6 @@ class MobileController {
     this.setStatusMessage('🧪 Transmitting simulated flight GPS data to laptop...');
 
     this.simTimer = window.setInterval(() => {
-      // Simulate steady cruise
       this.simLon -= 0.015;
       this.simLat += 0.002;
       this.lastLat = this.simLat;
@@ -431,6 +833,7 @@ class MobileController {
     }
 
     this.setStatusMessage('Simulator stopped.');
+    this.updateTransmitCounter(this.isWsConnected);
   }
 
   private setStatusMessage(msg: string): void {
@@ -450,16 +853,28 @@ class MobileController {
     setText('disp-heading', `${this.lastHeading}°`);
     setText('disp-coords', `${this.lastLat.toFixed(5)}°, ${this.lastLon.toFixed(5)}°`);
     setText('disp-fix-type', `✓ ${fixType} active`);
+  }
 
+  private updateTransmitCounter(connected: boolean): void {
     const txCounter = document.getElementById('tx-counter');
-    if (txCounter) {
-      txCounter.textContent = `Packets Sent to Laptop: ${this.packetsSent}`;
+    if (!txCounter) return;
+
+    if (!connected || !this.isWsConnected) {
+      txCounter.className = 'transmission-counter offline';
+      txCounter.textContent = `⚠️ PC OFFLINE — ${this.packetsSent} fixes sent, but PC is unreachable. Check Handshake Card above.`;
+    } else if (!this.isLaptopOnline) {
+      txCounter.className = 'transmission-counter warning';
+      txCounter.textContent = `🟡 RELAY ONLINE — ${this.packetsSent} fixes sent. Waiting for Laptop 3D Map to open...`;
+    } else {
+      txCounter.className = 'transmission-counter success';
+      txCounter.textContent = `🟢 LIVE TRANSMISSION ACTIVE — ${this.packetsSent} fixes sent • ${this.packetsAcked} ACKed by laptop (${this.lastLatencyMs || '<10'}ms)`;
     }
   }
 
   private requestDeviceOrientation(): void {
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
-      (DeviceOrientationEvent as any).requestPermission()
+      (DeviceOrientationEvent as any)
+        .requestPermission()
         .then((response: string) => {
           if (response === 'granted') {
             window.addEventListener('deviceorientation', this.handleOrientation.bind(this));
@@ -492,7 +907,10 @@ class MobileController {
   }
 
   private broadcastTelemetry(): void {
-    if (!this.ws || !this.isWsConnected) return;
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.updateTransmitCounter(false);
+      return;
+    }
 
     this.packetsSent++;
 
@@ -509,7 +927,14 @@ class MobileController {
       timestamp: Date.now()
     };
 
-    this.ws.send(JSON.stringify(payload));
+    try {
+      this.ws.send(JSON.stringify(payload));
+      this.updateHandshakeStats();
+      this.updateTransmitCounter(true);
+    } catch (e) {
+      console.warn('[Mobile] Error broadcasting telemetry:', e);
+      this.updateTransmitCounter(false);
+    }
   }
 }
 
