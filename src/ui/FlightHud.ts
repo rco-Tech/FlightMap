@@ -101,14 +101,6 @@ export class FlightHud {
               <span class="pulse-dot" id="gps-status-dot"></span>
               <span id="gps-source-label">SIM 10x</span>
             </button>
-            <button class="hud-pill-btn btn-secondary-compact" id="btn-toggle-solar" title="Day/Night Map & Solar Terminator Controls">
-              <span class="btn-icon" id="solar-btn-icon">☀️</span>
-              <span id="solar-btn-label">SUN</span>
-            </button>
-            <button class="hud-pill-btn" id="btn-map-tier" title="Map Layers, Styles & Resolution">
-              <span class="btn-icon">🌐</span>
-              <span id="tier-btn-label">MAP (${this.globeScene.textureTier === 'full' ? '8K' : '4K'})</span>
-            </button>
             <button class="hud-pill-btn" id="btn-open-settings" title="Settings: Units (Maritime / Metric / Imperial) & Display Options">
               <span class="btn-icon">⚙️</span>
               <span id="settings-btn-label">${this.unitManager.getSystemLabel()}</span>
@@ -432,14 +424,6 @@ export class FlightHud {
       if (btnLbl) btnLbl.textContent = sysLabel;
     });
 
-    document.getElementById('btn-map-tier')?.addEventListener('click', () => {
-      this.modalDialogs.showMapLayersModal(this.globeScene, () => this.updateMapTierButtonLabel());
-    });
-
-    document.getElementById('btn-toggle-solar')?.addEventListener('click', () => {
-      this.modalDialogs.showSolarModal(this.globeScene);
-    });
-
     document.getElementById('col-solar-status')?.addEventListener('click', () => {
       this.modalDialogs.showSolarModal(this.globeScene);
     });
@@ -736,25 +720,8 @@ export class FlightHud {
 
     // Live Astronomical Solar Telemetry
     const solarInfo = this.globeScene.currentSolarInfo;
-    const solarBtnLabel = document.getElementById('solar-btn-label');
-    const solarBtnIcon = document.getElementById('solar-btn-icon');
-
-    if (solarBtnLabel) {
-      if (this.globeScene.solarMode === 'utc') {
-        solarBtnLabel.textContent = 'SUN';
-      } else if (this.globeScene.solarMode === 'local_noon') {
-        solarBtnLabel.textContent = 'NOON';
-      } else if (this.globeScene.solarMode === 'sim') {
-        solarBtnLabel.textContent = 'SUN SIM';
-      } else {
-        solarBtnLabel.textContent = 'SUN';
-      }
-    }
 
     if (solarInfo) {
-      if (solarBtnIcon) {
-        solarBtnIcon.textContent = solarInfo.phaseIcon;
-      }
       const elevSign = solarInfo.elevationDeg > 0 ? '+' : '';
       const phaseName = solarInfo.phase === 'day' ? 'DAY' : solarInfo.phase === 'night' ? 'NIGHT' : 'TWILIGHT';
       setText('solar-phase-icon', solarInfo.phaseIcon);
@@ -769,11 +736,4 @@ export class FlightHud {
     }
   }
 
-  public updateMapTierButtonLabel(): void {
-    const label = document.getElementById('tier-btn-label');
-    if (label) {
-      const tier = this.globeScene.textureTier === 'full' ? '8K' : '4K';
-      label.textContent = `MAP (${tier})`;
-    }
-  }
 }
