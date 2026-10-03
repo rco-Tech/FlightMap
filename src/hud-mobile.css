@@ -38,23 +38,25 @@
     display: none;
   }
 
-  /* Row 1: Full-Width Dedicated Route Tracker */
+  /* Row 1: Full-Width Dedicated Route Tracker (Auto-resizes horizontally) */
   .route-tracker {
-    width: 100%;
-    margin: 0;
-    padding: 6px 12px;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    backdrop-filter: blur(16px);
-    background: rgba(8, 14, 28, 0.85);
-    border: 1px solid rgba(0, 229, 255, 0.22);
-    border-radius: 14px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
-    pointer-events: auto;
-    flex-shrink: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 6px 14px !important;
+    box-sizing: border-box !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+    backdrop-filter: blur(16px) !important;
+    background: rgba(8, 14, 28, 0.85) !important;
+    border: 1px solid rgba(0, 229, 255, 0.25) !important;
+    border-radius: 14px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+    pointer-events: auto !important;
+    flex-shrink: 0 !important;
+    flex: 1 1 auto !important;
   }
 
   .airport-origin,
@@ -191,9 +193,9 @@
 
   /* --- CAMERA PANEL: SLEEK COMPACT 1-ROW DOCK --- */
   .hud-right-camera-panel {
-    position: absolute;
-    top: calc(env(safe-area-inset-top) + 48px);
-    right: 12px;
+    position: absolute !important;
+    top: calc(env(safe-area-inset-top) + 104px) !important;
+    right: 12px !important;
     width: auto !important;
     display: inline-flex !important;
     flex-direction: row !important;
@@ -644,11 +646,11 @@
 
   .hud-left-instruments {
     transform: scale(0.62);
-    top: calc(env(safe-area-inset-top) + 48px);
+    top: calc(env(safe-area-inset-top) + 88px);
   }
 
   .hud-right-camera-panel {
-    top: calc(env(safe-area-inset-top) + 48px);
+    top: calc(env(safe-area-inset-top) + 88px) !important;
     right: 6px;
     left: auto;
     bottom: auto;
