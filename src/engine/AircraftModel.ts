@@ -329,7 +329,8 @@ export class AircraftModel {
       bevelThickness: 0.015
     });
     finGeom.rotateY(Math.PI / 2);
-    const fin = new THREE.Mesh(finGeom, darkTrimMat);
+    // White fin — matches the fuselage livery (was the near-black dark trim)
+    const fin = new THREE.Mesh(finGeom, pearlWhiteMat);
     fin.position.set(-0.03, 0.25, -2.1);
     this.modelGroup.add(fin);
 
@@ -344,14 +345,18 @@ export class AircraftModel {
     const hTailGeom = new THREE.ExtrudeGeometry(hTailShape, { depth: 0.05, bevelEnabled: false });
     hTailGeom.rotateX(Math.PI / 2);
 
+    // Mount the stabilizer directly on the fin top edge. The fin's top chord
+    // spans Z ≈ -3.7..-4.3 at Y ≈ 2.55, so the stabilizer root chord
+    // (-3.75..-4.15) overlaps the fin tip — previously it floated at Z=-4.8,
+    // detached behind the aircraft.
     const rightHTail = new THREE.Mesh(hTailGeom, pearlWhiteMat);
-    rightHTail.position.set(0.02, 2.52, -4.8);
+    rightHTail.position.set(0.02, 2.57, -3.75);
     this.modelGroup.add(rightHTail);
 
     const leftHTailGeom = hTailGeom.clone();
     leftHTailGeom.scale(-1, 1, 1);
     const leftHTail = new THREE.Mesh(leftHTailGeom, pearlWhiteMat);
-    leftHTail.position.set(-0.02, 2.52, -4.8);
+    leftHTail.position.set(-0.02, 2.57, -3.75);
     this.modelGroup.add(leftHTail);
 
     // 7. Navigation & Anti-Collision Strobe Lights
@@ -367,9 +372,9 @@ export class AircraftModel {
     this.modelGroup.add(stbdLight);
     this.navLights.push(stbdLight);
 
-    // Tail White Light
+    // Tail White Light (at the fin top trailing edge, was floating behind the tail)
     const tailLight = new THREE.PointLight(0xffffff, 1.0, 5);
-    tailLight.position.set(0, 2.55, -5.3);
+    tailLight.position.set(0, 2.55, -4.35);
     this.modelGroup.add(tailLight);
     this.navLights.push(tailLight);
 
@@ -389,7 +394,7 @@ export class AircraftModel {
     // Glowing navigation light halos (readable from globe-orbit distance)
     this.addGlowSprite(-5.85, 0.45, -1.8, 0xff3050); // Port wingtip — red
     this.addGlowSprite(5.85, 0.45, -1.8, 0x2dff70); // Starboard wingtip — green
-    this.addGlowSprite(0, 2.72, -5.32, 0xffffff, 0.75); // Tail — white
+    this.addGlowSprite(0, 2.62, -4.4, 0xffffff, 0.75); // Tail — white
     this.strobeGlow = this.addGlowSprite(0, 0.46, 0.2, 0xffffff, 0.95); // Fuselage strobe — flashes
   }
 
@@ -424,6 +429,14 @@ export class AircraftModel {
       color: 0x0f2744,
       roughness: 0.25,
       metalness: 0.45
+    });
+
+    // Airline tail livery — medium blue so the fin reads as a livery, not a
+    // near-black slab (was darkBlueMat 0x0f2744).
+    const tailLiveryMat = new THREE.MeshStandardMaterial({
+      color: 0x1d5fa8,
+      roughness: 0.28,
+      metalness: 0.35
     });
 
     // 1. Smooth Widebody Fuselage (Boeing 787 continuous aerodynamic loft)
@@ -546,20 +559,24 @@ export class AircraftModel {
 
     // 4. Swept Vertical Stabilizer (Airline Tail)
     // Positive-X shape => proper aft sweep after the +90° Y rotation.
+    // Slimmer than before: root chord reduced 2.0 -> 1.6 so the tail no longer
+    // reads as an oversized slab from behind.
     const finShape = new THREE.Shape();
     finShape.moveTo(0, 0);
-    finShape.lineTo(1.8, 2.7);
-    finShape.lineTo(2.5, 2.7);
-    finShape.lineTo(2.0, 0);
+    finShape.lineTo(1.7, 2.7);
+    finShape.lineTo(2.3, 2.7);
+    finShape.lineTo(1.6, 0);
     finShape.closePath();
 
     const finGeom = new THREE.ExtrudeGeometry(finShape, { depth: 0.08, bevelEnabled: true, bevelSize: 0.02 });
     finGeom.rotateY(Math.PI / 2);
-    const fin = new THREE.Mesh(finGeom, darkBlueMat);
+    const fin = new THREE.Mesh(finGeom, tailLiveryMat);
     fin.position.set(-0.04, 0.35, -2.7);
     this.modelGroup.add(fin);
 
-    // Low-Set Horizontal Tailplanes
+    // Low-Set Horizontal Tailplanes — seated on the rear tail cone with the tip
+    // trailing edge just past the fuselage tip (was at Z=-4.5, noticeably
+    // trailing behind the aircraft).
     const hTailShape = new THREE.Shape();
     hTailShape.moveTo(0, 0);
     hTailShape.lineTo(2.3, -0.8);
@@ -571,14 +588,14 @@ export class AircraftModel {
     hTailGeom.rotateX(Math.PI / 2);
 
     const rightHTail = new THREE.Mesh(hTailGeom, pearlWhiteMat);
-    rightHTail.position.set(0.15, 0.1, -4.5);
+    rightHTail.position.set(0.15, 0.1, -4.2);
     rightHTail.rotation.z = -0.06;
     this.modelGroup.add(rightHTail);
 
     const leftHTailGeom = hTailGeom.clone();
     leftHTailGeom.scale(-1, 1, 1);
     const leftHTail = new THREE.Mesh(leftHTailGeom, pearlWhiteMat);
-    leftHTail.position.set(-0.15, 0.1, -4.5);
+    leftHTail.position.set(-0.15, 0.1, -4.2);
     leftHTail.rotation.z = 0.06;
     this.modelGroup.add(leftHTail);
 
@@ -593,8 +610,9 @@ export class AircraftModel {
     this.modelGroup.add(stbdLight);
     this.navLights.push(stbdLight);
 
+    // Tail White Light (at the fin top trailing edge, was floating behind the tail)
     const tailLight = new THREE.PointLight(0xffffff, 1.0, 5);
-    tailLight.position.set(0, 2.9, -5.8);
+    tailLight.position.set(0, 2.95, -5.05);
     this.modelGroup.add(tailLight);
     this.navLights.push(tailLight);
 
@@ -613,7 +631,7 @@ export class AircraftModel {
     // Glowing navigation light halos (readable from globe-orbit distance)
     this.addGlowSprite(-6.55, 0.42, -2.1, 0xff3050); // Port wingtip — red
     this.addGlowSprite(6.55, 0.42, -2.1, 0x2dff70); // Starboard wingtip — green
-    this.addGlowSprite(0, 3.05, -5.85, 0xffffff, 0.75); // Tail — white
+    this.addGlowSprite(0, 3.02, -5.08, 0xffffff, 0.75); // Tail — white
     this.strobeGlow = this.addGlowSprite(0, 0.55, 0.2, 0xffffff, 0.95); // Fuselage strobe — flashes
   }
 
