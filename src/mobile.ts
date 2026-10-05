@@ -792,6 +792,35 @@ class MobileController {
             <!-- Airport search suggestions (city / airport name / IATA) -->
             <div class="fp-suggest" id="fp-suggest"></div>
 
+            <!-- Route details: flight number, cruise altitude & speed -->
+            <div class="remote-fp-meta-section">
+              <div class="remote-fp-field">
+                <span class="remote-fp-field-tag">FLIGHT NUMBER</span>
+                <input type="text" class="remote-fp-input remote-fp-input-flight" id="remote-input-flight" placeholder="W4-3002" value="W4-3002" maxlength="8" autocomplete="off" spellcheck="false" />
+              </div>
+              <div class="remote-fp-inputs-row">
+                <div class="remote-fp-field">
+                  <span class="remote-fp-field-tag">CRUISE ALTITUDE</span>
+                  <select class="remote-fp-select" id="remote-select-alt">
+                    <option value="36000">FL360 (36,000 FT)</option>
+                    <option value="37000" selected>FL370 (37,000 FT)</option>
+                    <option value="38000">FL380 (38,000 FT)</option>
+                    <option value="40000">FL400 (40,000 FT)</option>
+                    <option value="43000">FL430 (43,000 FT)</option>
+                  </select>
+                </div>
+                <div class="remote-fp-field">
+                  <span class="remote-fp-field-tag">CRUISE SPEED</span>
+                  <select class="remote-fp-select" id="remote-select-speed">
+                    <option value="450" selected>Mach 0.76 (450 KTS)</option>
+                    <option value="460">Mach 0.78 (460 KTS)</option>
+                    <option value="485">Mach 0.82 (485 KTS)</option>
+                    <option value="510">Mach 0.86 (510 KTS)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div class="remote-fp-actions-row">
               <button class="btn-remote-fav" id="btn-mobile-save-fav" title="Save to Favorites">⭐ Save Fav</button>
               <button class="btn-remote-send" id="btn-mobile-send-route" title="Activate Route on Laptop">🚀 Send to Laptop</button>
@@ -1401,6 +1430,12 @@ class MobileController {
     fromInput?.addEventListener('focus', () => this.handleAirportSearchInput('from'));
     toInput?.addEventListener('focus', () => this.handleAirportSearchInput('to'));
 
+    // Flight number auto-uppercase
+    const flightInput = document.getElementById('remote-input-flight') as HTMLInputElement | null;
+    flightInput?.addEventListener('input', () => {
+      flightInput.value = flightInput.value.toUpperCase();
+    });
+
     // Send custom route button
     document.getElementById('btn-mobile-send-route')?.addEventListener('click', () => {
       const from = (document.getElementById('remote-input-from') as HTMLInputElement)?.value.trim().toUpperCase();
@@ -1409,7 +1444,8 @@ class MobileController {
         this.showFpFeedback('Please enter valid 3-letter IATA codes (e.g. BHX, OTP)', 'warn');
         return;
       }
-      this.sendFlightPlan(from, to, `${from}-${to}`, 'Custom Route', 'Airbus A321neo');
+      const meta = this.readRouteMeta();
+      this.sendFlightPlan(from, to, meta.flightNumber || `${from}-${to}`, 'Custom Route', 'Airbus A321neo', meta.alt, meta.speed);
     });
 
     // Save custom favorite button
@@ -1420,12 +1456,15 @@ class MobileController {
         this.showFpFeedback('Enter valid IATAs before saving', 'warn');
         return;
       }
+      const meta = this.readRouteMeta();
       this.flightPlanManager.saveFavoriteRoute({
         from,
         to,
-        flightNumber: `${from}-${to}`,
+        flightNumber: meta.flightNumber || `${from}-${to}`,
         airline: `${from} &rarr; ${to}`,
-        aircraft: 'Airbus A321neo'
+        aircraft: 'Airbus A321neo',
+        cruiseAltitudeFt: meta.alt,
+        cruiseSpeedKnots: meta.speed
       });
       this.showFpFeedback(`✓ Saved ${from} &rarr; ${to} to favorites!`, 'success');
       this.renderMobilePresets();
@@ -1474,6 +1513,9 @@ class MobileController {
     this.activeRouteKey = `${f}-${t}`;
     this.renderMobilePresets();
 
+    // Mirror the active route values into the custom-route form controls.
+    this.syncRouteMetaInputs(flightNumber, alt, speed);
+
     // Arm the confirmation cue — fires when the laptop echoes this route back.
     this.pendingRouteCue = { key: `${f}-${t}`, at: Date.now() };
 
@@ -1503,6 +1545,36 @@ class MobileController {
       }
     } else {
       this.showFpFeedback('Laptop is currently offline; connect to sync', 'warn');
+    }
+  }
+
+  /** Reads the flight-number / altitude / speed controls on the custom-route form. */
+  private readRouteMeta(): { flightNumber: string; alt: number; speed: number } {
+    const flightNo =
+      (document.getElementById('remote-input-flight') as HTMLInputElement | null)?.value.trim().toUpperCase() || '';
+    const alt = parseInt((document.getElementById('remote-select-alt') as HTMLSelectElement | null)?.value || '37000', 10);
+    const speed = parseInt(
+      (document.getElementById('remote-select-speed') as HTMLSelectElement | null)?.value || '450',
+      10
+    );
+    return { flightNumber: flightNo, alt: alt || 37000, speed: speed || 450 };
+  }
+
+  /** Mirrors a route's values into the custom-route form controls (preset tap, custom send). */
+  private syncRouteMetaInputs(flightNumber: string, alt: number, speed: number): void {
+    const flightNo = document.getElementById('remote-input-flight') as HTMLInputElement | null;
+    if (flightNo) flightNo.value = flightNumber.toUpperCase();
+
+    const altSel = document.getElementById('remote-select-alt') as HTMLSelectElement | null;
+    if (altSel) {
+      const v = String(Math.round(alt));
+      if (Array.from(altSel.options).some((o) => o.value === v)) altSel.value = v;
+    }
+
+    const speedSel = document.getElementById('remote-select-speed') as HTMLSelectElement | null;
+    if (speedSel) {
+      const v = String(Math.round(speed));
+      if (Array.from(speedSel.options).some((o) => o.value === v)) speedSel.value = v;
     }
   }
 

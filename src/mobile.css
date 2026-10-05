@@ -1150,6 +1150,49 @@ input:checked + .toggle-slider:before {
   background: rgba(0, 229, 255, 0.08);
 }
 
+/* Route details: flight number, cruise altitude & speed */
+.remote-fp-meta-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 8px;
+  box-sizing: border-box;
+}
+
+.remote-fp-input-flight {
+  letter-spacing: 1px;
+}
+
+.remote-fp-select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: var(--font-sans);
+  font-size: 13px; /* viewport is scale-locked, so no iOS focus-zoom */
+  font-weight: 600;
+  text-align: center;
+  padding: 12px 20px 12px 4px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 10px;
+  color: #ffffff;
+  outline: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2300e5ff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 5px center;
+  background-size: 11px;
+  transition: all 0.2s ease;
+}
+
+.remote-fp-select:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.35);
+  background-color: rgba(0, 229, 255, 0.08);
+}
+
 .remote-fp-arrow-wrap {
   flex: 0 0 auto;
   display: flex;
