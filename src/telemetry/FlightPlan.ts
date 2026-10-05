@@ -70,21 +70,24 @@ export class FlightPlanManager {
       isCustom: false
     }));
 
-    const seen = new Set<string>();
     const result: RoutePreset[] = [];
 
+    // Customs first — a saved favorite shadows default presets on the same route.
+    const customRouteKeys = new Set<string>();
     for (const r of custom) {
       const key = `${r.from.toUpperCase()}-${r.to.toUpperCase()}`;
-      if (!seen.has(key)) {
-        seen.add(key);
+      if (!customRouteKeys.has(key)) {
+        customRouteKeys.add(key);
         result.push(r);
       }
     }
 
+    // Show every default flight whose route is not already covered by a custom
+    // favorite — multiple flights can share a route with different aircraft
+    // (e.g. W4 3002 A321neo and RT101 Gulfstream G650ER both fly BHX->OTP).
     for (const r of defaults) {
       const key = `${r.from.toUpperCase()}-${r.to.toUpperCase()}`;
-      if (!seen.has(key)) {
-        seen.add(key);
+      if (!customRouteKeys.has(key)) {
         result.push(r);
       }
     }

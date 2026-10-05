@@ -31,6 +31,7 @@
 - **Autonomous Flight Physics Simulator**: Realistic Great-Circle cruise physics with adjustable simulation multipliers ($1\times, 5\times, 10\times, 25\times, 50\times$).
 
 ### 🛩️ 3. Continuous 3D Aircraft Models & Dynamics
+- **Automatic Model Selection**: The 3D model is chosen from the active flight plan's aircraft type — Gulfstream G650ER routes fly the private business jet, airliner routes (A320/737/787 etc.) fly the widebody. The manual toggle still overrides at any time.
 - **Aerodynamic 36-Segment Lathe Geometry**:
   - **Private Business Jet**: Sleek fuselage loft with swept wings, blended winglets, dual aft-mounted turbofans, and T-tail stabilizer (Gulfstream G650ER profile).
   - **Commercial Widebody Airliner**: Twin-aisle fuselage with raked wingtips, dual underwing high-bypass turbofans with chevron cowlings, and classic empennage (Boeing 787-9 Dreamliner profile).

@@ -83,6 +83,26 @@ export class AircraftModel {
     return this.currentType;
   }
 
+  /**
+   * Resolve which 3D model best matches a free-form aircraft type string from
+   * a flight plan (e.g. "Gulfstream G650ER" -> private business jet,
+   * "Boeing 787-9 Dreamliner" -> widebody airliner).
+   * Airline fleet names never contain the private-jet family keywords below,
+   * so a simple keyword match is reliable for both presets and custom plans.
+   */
+  public static resolveTypeFromAircraftName(name: string | undefined | null): AircraftType {
+    if (!name) return 'widebody_airliner';
+    const n = name.toLowerCase();
+
+    const businessJetPattern =
+      /gulfstream|g650|g550|g500|g280|global\s?(5000|6000|7000|7500|8000|express)?\b|bombardier|challenger|learjet|cessna|citation|phenom|praetor|falcon|legacy|hawker|private|business\s?jet/;
+
+    if (businessJetPattern.test(n)) {
+      return 'business_jet';
+    }
+    return 'widebody_airliner';
+  }
+
   public setAircraftType(type: AircraftType): void {
     this.currentType = type;
     while (this.modelGroup.children.length > 0) {

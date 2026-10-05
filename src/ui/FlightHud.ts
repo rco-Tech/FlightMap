@@ -338,6 +338,19 @@ export class FlightHud {
     }
   }
 
+  /**
+   * Switch the 3D aircraft model and keep the toggle button label in sync.
+   * Used by the manual toggle and by flight-plan auto-selection.
+   */
+  public setAircraftType(type: AircraftType): void {
+    this.currentAircraftType = type;
+    this.globeScene.setAircraftType(type);
+    const aircraftLbl = document.getElementById('aircraft-btn-label');
+    if (aircraftLbl) {
+      aircraftLbl.textContent = type === 'business_jet' ? 'PRIVATE JET' : 'AIRLINER (B787)';
+    }
+  }
+
   private initEventListeners(): void {
     // Camera buttons
     this.container.querySelectorAll('.cam-btn').forEach((btn) => {
@@ -372,16 +385,10 @@ export class FlightHud {
 
     // Aircraft Switcher button (toggles Private Jet vs Commercial Airliner)
     const aircraftBtn = document.getElementById('btn-toggle-aircraft');
-    const aircraftLbl = document.getElementById('aircraft-btn-label');
     aircraftBtn?.addEventListener('click', () => {
-      if (this.currentAircraftType === 'business_jet') {
-        this.currentAircraftType = 'widebody_airliner';
-        if (aircraftLbl) aircraftLbl.textContent = 'AIRLINER (B787)';
-      } else {
-        this.currentAircraftType = 'business_jet';
-        if (aircraftLbl) aircraftLbl.textContent = 'PRIVATE JET';
-      }
-      this.globeScene.setAircraftType(this.currentAircraftType);
+      this.setAircraftType(
+        this.currentAircraftType === 'business_jet' ? 'widebody_airliner' : 'business_jet'
+      );
     });
 
     // Modals

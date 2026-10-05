@@ -2,6 +2,7 @@ import './index.css';
 import './hud-mobile.css';
 import { GlobeScene } from './engine/GlobeScene';
 import { CameraManager } from './engine/CameraManager';
+import { AircraftModel } from './engine/AircraftModel';
 import { TelemetryManager } from './telemetry/TelemetryManager';
 import { FlightPlanManager } from './telemetry/FlightPlan';
 import { AirportDatabase } from './telemetry/AirportDatabase';
@@ -180,6 +181,9 @@ async function bootstrap() {
     flightPlanManager.onPlanChanged((plan) => {
       globeScene.updateFlightPlanVisuals(plan);
       telemetry.broadcastFlightPlan(plan);
+      // Auto-fit the 3D model to the aircraft type carried by the flight plan
+      // (e.g. "Gulfstream G650ER" -> private jet, "Boeing 787-9" -> widebody).
+      flightHud.setAircraftType(AircraftModel.resolveTypeFromAircraftName(plan.aircraftType));
     });
 
     // Connect remote flight plan changes from mobile copilot
