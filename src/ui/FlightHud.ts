@@ -189,7 +189,7 @@ export class FlightHud {
               <button class="sim-ctrl-btn" id="btn-sim-pause" title="Pause / Resume Simulation">
                 <svg id="sim-pause-icon" viewBox="0 0 24 24" width="11" height="11" fill="currentColor"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
               </button>
-              <button class="sim-ctrl-btn sim-speed-tag" id="btn-sim-speed" title="Cycle Simulation Speed (1x, 2x, 5x, 10x, 25x, 50x)">
+              <button class="sim-ctrl-btn sim-speed-tag" id="btn-sim-speed" title="Cycle Simulation Speed (1x, 10x, 25x, 50x, 75x, 100x)">
                 <span id="sim-speed-tag">${this.telemetryManager.getSimulationSpeed()}x</span>
               </button>
             </div>
@@ -467,8 +467,8 @@ export class FlightHud {
       }
     });
 
-    // Sim speed cycle button (1x, 2x, 5x, 10x, 25x, 50x)
-    const speedCycle = [1, 2, 5, 10, 25, 50];
+    // Sim speed cycle button (1x, 10x, 25x, 50x, 75x, 100x)
+    const speedCycle = [1, 10, 25, 50, 75, 100];
     const handleSpeedCycle = () => {
       if (this.telemetryManager.getSource() !== 'simulation') {
         this.telemetryManager.setSource('simulation');

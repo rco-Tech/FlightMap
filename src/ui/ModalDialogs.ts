@@ -353,11 +353,11 @@ export class ModalDialogs {
               <div class="sim-speed-controls">
                 <span>SIM SPEED:</span>
                 <button class="speed-pill ${currentSpeed === 1 ? 'active' : ''}" data-speed="1">1x</button>
-                <button class="speed-pill ${currentSpeed === 2 ? 'active' : ''}" data-speed="2">2x</button>
-                <button class="speed-pill ${currentSpeed === 5 ? 'active' : ''}" data-speed="5">5x</button>
                 <button class="speed-pill ${currentSpeed === 10 ? 'active' : ''}" data-speed="10">10x</button>
                 <button class="speed-pill ${currentSpeed === 25 ? 'active' : ''}" data-speed="25">25x</button>
                 <button class="speed-pill ${currentSpeed === 50 ? 'active' : ''}" data-speed="50">50x</button>
+                <button class="speed-pill ${currentSpeed === 75 ? 'active' : ''}" data-speed="75">75x</button>
+                <button class="speed-pill ${currentSpeed === 100 ? 'active' : ''}" data-speed="100">100x</button>
               </div>
               <button class="btn-action" id="btn-enable-simulation">
                 ${currentSource === 'simulation' ? '✓ Currently Active' : 'Switch to Flight Simulation'}

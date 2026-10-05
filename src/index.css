@@ -220,10 +220,20 @@ html, body {
   color: var(--text-muted);
   letter-spacing: 0.3px;
   white-space: nowrap !important;
+  /* Failsafe: never let the nowrap metrics bleed out beneath the top-bar
+     buttons on narrow windows — shrink/ellipsize inside this box instead. */
+  min-width: 0;
+  overflow: hidden;
 }
 
 .route-metrics span {
   white-space: nowrap !important;
+}
+
+.route-metrics .metric {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .route-metrics .center {
@@ -232,6 +242,7 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
 }
 
 .route-metrics .time-sep {
@@ -625,7 +636,9 @@ html, body {
 /* --- BOTTOM TELEMETRY BAR --- */
 .hud-bottom-bar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* minmax(0, 1fr): equal columns that ignore content min-width — without this
+     the clocks card's min-content forced its column wider and shrank the rest. */
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 16px;
   padding: 16px 28px;
   background: linear-gradient(0deg, rgba(2, 6, 15, 0.94) 0%, rgba(2, 6, 15, 0.6) 70%, transparent 100%);
@@ -850,7 +863,7 @@ html, body {
 
 .clocks-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   align-items: center;
   flex: 1;
@@ -1751,5 +1764,75 @@ html, body {
 
   .solar-elev-badge {
     font-size: 9px;
+  }
+}
+
+/* --- NARROW DESKTOP HEADER COMPACTION (<= 1100px) ---
+   The route tracker's metrics row needs ~272px and cannot wrap. At this width
+   the text-pill row used to consume ~509px, squeezing the tracker's center
+   column to ~156px and letting ETE/ETA/distance text bleed out underneath the
+   buttons. Collapse the secondary pills to icon circles so the tracker keeps
+   its full width. The GPS source pill keeps its "SIM xx" status text. */
+@media (max-width: 1100px) {
+  #btn-toggle-aircraft,
+  #btn-open-route,
+  #btn-open-settings {
+    padding: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    justify-content: center !important;
+    border-radius: 50% !important;
+  }
+
+  #btn-toggle-aircraft span:not(.btn-icon),
+  #btn-open-route span:not(.btn-icon),
+  #btn-open-settings span:not(.btn-icon) {
+    display: none !important;
+  }
+
+  #btn-toggle-aircraft .btn-icon,
+  #btn-open-route .btn-icon,
+  #btn-open-settings .btn-icon {
+    margin: 0 !important;
+  }
+}
+
+/* --- NARROW DESKTOP BOTTOM BAR: stacked clocks card ---
+   The ROUTE CLOCKS + SOLAR card's side-by-side layout has a ~253px min-content,
+   which used to force its grid column wider than the other four cards. Below
+   ~1330px we stack its two sections vertically so the card fits a regular
+   equal-width column and all five telemetry cards line up. */
+@media (min-width: 901px) and (max-width: 1330px) {
+  .clocks-card {
+    flex-direction: column;
+    gap: 4px;
+    justify-content: center;
+  }
+
+  .flight-clocks-section {
+    flex: 0 0 auto;
+  }
+
+  .solar-section {
+    flex: 0 0 auto;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding-left: 0;
+    padding-top: 4px;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .solar-body-center {
+    flex-direction: row;
+    gap: 6px;
+    margin: 0;
+  }
+
+  .solar-section .card-top-row {
+    display: none;
   }
 }

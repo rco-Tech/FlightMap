@@ -56,6 +56,12 @@ class MobileController {
   private liveDestTz: string = '';
   private liveProgressReceived: boolean = false;
 
+  // Battery saver (throttles the GPS relay to conserve power)
+  private batteryMode: 'auto' | 'on' | 'off' = 'auto';
+  private batteryLevel: number | null = null;
+  private batteryCharging: boolean | null = null;
+  private lastTelemetrySentAt: number = 0;
+
   constructor() {
     this.targetHost = this.resolveTargetHost();
     this.render();
@@ -66,6 +72,7 @@ class MobileController {
       this.renderMobilePresets();
     });
     this.checkSecureContext();
+    this.initBatterySaver();
   }
 
   private resolveTargetHost(): string {
@@ -97,6 +104,85 @@ class MobileController {
         banner.style.display = 'flex';
       } else {
         banner.style.display = 'none';
+      }
+    }
+  }
+
+  // --- Battery Saver ---
+
+  private initBatterySaver(): void {
+    try {
+      const saved = localStorage.getItem('flightmap_battery_saver');
+      if (saved === 'auto' || saved === 'on' || saved === 'off') {
+        this.batteryMode = saved;
+      }
+    } catch {}
+
+    // Battery Status API (Android/Chrome + desktop; unavailable on iOS Safari).
+    const anyNav = navigator as any;
+    if (typeof anyNav.getBattery === 'function') {
+      anyNav
+        .getBattery()
+        .then((battery: any) => {
+          const refresh = () => {
+            this.batteryLevel = typeof battery.level === 'number' ? Math.round(battery.level * 100) : null;
+            this.batteryCharging = Boolean(battery.charging);
+            this.updateBatteryStatus();
+          };
+          battery.addEventListener('levelchange', refresh);
+          battery.addEventListener('chargingchange', refresh);
+          refresh();
+        })
+        .catch(() => this.updateBatteryStatus());
+    } else {
+      this.updateBatteryStatus();
+    }
+  }
+
+  /** True while the relay should be throttled to save power. */
+  private isBatterySaverActive(): boolean {
+    if (this.batteryMode === 'on') return true;
+    if (this.batteryMode === 'off') return false;
+    // AUTO: engage on low battery when unplugged (unknown level -> stay full rate)
+    return this.batteryLevel !== null && this.batteryLevel <= 20 && this.batteryCharging === false;
+  }
+
+  private renderBatteryMode(): void {
+    document.querySelectorAll('.battery-pill').forEach((btn) => {
+      const el = btn as HTMLElement;
+      el.classList.toggle('active', el.dataset.mode === this.batteryMode);
+    });
+  }
+
+  private updateBatteryStatus(): void {
+    this.renderBatteryMode();
+
+    const levelEl = document.getElementById('battery-level');
+    if (levelEl) {
+      if (this.batteryLevel !== null) {
+        const icon = this.batteryCharging ? '🔌' : '🔋';
+        levelEl.textContent = `${icon} ${this.batteryLevel}%${this.batteryCharging ? ' • CHG' : ''}`;
+      } else {
+        levelEl.textContent = '🔋 n/a';
+      }
+    }
+
+    const active = this.isBatterySaverActive();
+    const card = document.getElementById('battery-card');
+    if (card) card.classList.toggle('saver-active', active);
+
+    const statusEl = document.getElementById('battery-status');
+    if (statusEl) {
+      if (active) {
+        const reason = this.batteryMode === 'on' ? 'manual' : 'low battery';
+        statusEl.textContent = `⚡ Saver active (${reason}) — GPS relay throttled to one fix every 10 s.`;
+      } else if (this.batteryMode === 'auto') {
+        statusEl.textContent =
+          this.batteryLevel !== null
+            ? `Full rate now — AUTO engages below 20% on battery (now ${this.batteryLevel}%${this.batteryCharging ? ', charging' : ''}).`
+            : 'AUTO needs battery access (unavailable on this device) — use ON to force the saver.';
+      } else {
+        statusEl.textContent = 'Broadcasting at full rate.';
       }
     }
   }
@@ -259,6 +345,20 @@ class MobileController {
           </div>
         </div>
 
+        <!-- Battery Saver (throttles the relay when power is scarce) -->
+        <div class="battery-card" id="battery-card">
+          <div class="battery-header">
+            <span class="battery-title">BATTERY SAVER</span>
+            <span class="battery-level" id="battery-level">🔋 --</span>
+          </div>
+          <div class="battery-pills">
+            <button class="battery-pill" data-mode="auto">AUTO</button>
+            <button class="battery-pill" data-mode="on">ON</button>
+            <button class="battery-pill" data-mode="off">OFF</button>
+          </div>
+          <div class="battery-status" id="battery-status">Broadcasting at full rate.</div>
+        </div>
+
         <!-- Measurement Unit Selector -->
         <div class="mobile-unit-bar">
           <span class="m-unit-lbl">UNITS:</span>
@@ -352,11 +452,11 @@ class MobileController {
               </button>
               <div class="remote-sim-speed-pills" id="m-sim-speed-pills">
                 <button class="m-speed-pill" data-speed="1">1x</button>
-                <button class="m-speed-pill" data-speed="2">2x</button>
-                <button class="m-speed-pill" data-speed="5">5x</button>
                 <button class="m-speed-pill active" data-speed="10">10x</button>
                 <button class="m-speed-pill" data-speed="25">25x</button>
                 <button class="m-speed-pill" data-speed="50">50x</button>
+                <button class="m-speed-pill" data-speed="75">75x</button>
+                <button class="m-speed-pill" data-speed="100">100x</button>
               </div>
             </div>
           </div>
@@ -854,6 +954,19 @@ class MobileController {
             }));
           } catch (err) {}
         }
+      });
+    });
+
+    // Battery saver mode pills (AUTO / ON / OFF)
+    document.querySelectorAll('.battery-pill').forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        const mode = (e.currentTarget as HTMLElement).dataset.mode as 'auto' | 'on' | 'off';
+        if (!mode) return;
+        this.batteryMode = mode;
+        try {
+          localStorage.setItem('flightmap_battery_saver', mode);
+        } catch {}
+        this.updateBatteryStatus();
       });
     });
 
@@ -1411,6 +1524,13 @@ class MobileController {
       this.updateTransmitCounter(false);
       return;
     }
+
+    // Battery saver: throttle outbound fixes to one per 10 s.
+    const now = Date.now();
+    if (this.isBatterySaverActive() && now - this.lastTelemetrySentAt < 10000) {
+      return;
+    }
+    this.lastTelemetrySentAt = now;
 
     this.packetsSent++;
 

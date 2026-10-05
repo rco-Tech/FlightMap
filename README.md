@@ -28,7 +28,7 @@
 - **Dynamic Hotspot Subnet Detection**: Intelligent network resolution automatically binds to active Wi-Fi, iPhone/Android hotspot subnets (`172.20.10.x`, `192.168.43.x`), or local LAN.
 - **Hardware NMEA GPS Receiver**: Connect external USB/Bluetooth GPS pucks (Garmin GLO, u-blox USB dongles) via the Web Serial API.
 - **Native Browser Geolocation API**: Direct Windows / OS location telemetry.
-- **Autonomous Flight Physics Simulator**: Realistic Great-Circle cruise physics with adjustable simulation multipliers ($1\times, 5\times, 10\times, 25\times, 50\times$).
+- **Autonomous Flight Physics Simulator**: Realistic Great-Circle cruise physics with adjustable simulation multipliers ($1\times, 10\times, 25\times, 50\times, 75\times, 100\times$).
 
 ### 🛩️ 3. Continuous 3D Aircraft Models & Dynamics
 - **Automatic Model Selection**: The 3D model is chosen from the active flight plan's aircraft type — Gulfstream G650ER routes fly the private business jet, airliner routes (A320/737/787 etc.) fly the widebody. The manual toggle still overrides at any time.
@@ -148,6 +148,8 @@ When sitting by an airplane window:
 6. Your laptop will instantly receive satellite telemetry and track your aircraft in real-time!
 
 The phone page also mirrors the flight's live status — route progress bar, distance flown/remaining, ETE and ETA (in destination local time) — refreshed every couple of seconds, and it keeps updating even when the laptop's browser window is in the background.
+
+The **Battery Saver** card (AUTO / ON / OFF) throttles the GPS relay to one fix every 10 s when engaged — AUTO engages below 20% battery — and returns to full rate instantly when power recovers.
 
 ---
 

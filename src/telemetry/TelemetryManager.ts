@@ -507,6 +507,10 @@ export class TelemetryManager {
               if (this.activeSource !== 'simulation') {
                 this.setSource('simulation');
               }
+              // Re-broadcast after a possible source switch — the first broadcast
+              // above carries the pre-switch pause flag and would leave the
+              // phone stuck on a stale "PAUSED" badge.
+              this.broadcastSimState();
             }
 
             if (msg.type === 'sim_pause_command') {
