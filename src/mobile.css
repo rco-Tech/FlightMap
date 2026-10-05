@@ -1456,3 +1456,213 @@ input:checked + .toggle-slider:before {
 .battery-card.saver-active .battery-status {
   color: #86efac;
 }
+
+/* --- Compass Rose (magnetometer heading + GPS-track fallback) --- */
+.compass-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.compass-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.compass-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.compass-source {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  color: var(--accent-cyan);
+}
+
+.compass-body {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 2px 4px 4px;
+}
+
+.compass-dial {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 229, 255, 0.35);
+  background: radial-gradient(circle, rgba(6, 16, 32, 0.92) 0 58%, rgba(0, 229, 255, 0.06) 59% 100%);
+  box-shadow: inset 0 0 22px rgba(0, 229, 255, 0.08);
+}
+
+/* Ring of tick marks around the outer edge of the dial */
+.compass-dial::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  background: repeating-conic-gradient(rgba(255, 255, 255, 0.28) 0deg 1.2deg, transparent 1.2deg 15deg);
+  -webkit-mask: radial-gradient(circle, transparent 0 80%, #000 81% 100%);
+  mask: radial-gradient(circle, transparent 0 80%, #000 81% 100%);
+  pointer-events: none;
+}
+
+.cp-label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.cp-n { top: 12px; left: 50%; transform: translateX(-50%); color: var(--accent-cyan); }
+.cp-s { bottom: 12px; left: 50%; transform: translateX(-50%); }
+.cp-e { right: 14px; top: 50%; transform: translateY(-50%); }
+.cp-w { left: 14px; top: 50%; transform: translateY(-50%); }
+
+.compass-needle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 30px;
+  height: 30px;
+  margin: -15px 0 0 -15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.18s ease-out;
+  will-change: transform;
+}
+
+.compass-needle svg {
+  display: block;
+  filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.65));
+}
+
+.compass-hub {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: #061020;
+  border: 1px solid rgba(0, 229, 255, 0.6);
+}
+
+.compass-readout {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.compass-deg {
+  font-family: var(--font-mono);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  color: #ffffff;
+}
+
+.compass-cardinal {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--accent-cyan);
+}
+
+.compass-hint {
+  margin-top: 5px;
+  font-size: 10px;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+
+/* --- Airport search suggestions (custom route inputs) --- */
+.fp-suggest {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.fp-suggest.open {
+  display: flex;
+}
+
+.fp-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.fp-suggest-item:active {
+  background: rgba(0, 229, 255, 0.12);
+  border-color: rgba(0, 229, 255, 0.35);
+}
+
+.fp-suggest-iata {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--accent-cyan);
+  background: rgba(0, 229, 255, 0.1);
+  border: 1px solid rgba(0, 229, 255, 0.3);
+  border-radius: 6px;
+  padding: 3px 6px;
+}
+
+.fp-suggest-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.fp-suggest-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fp-suggest-sub {
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

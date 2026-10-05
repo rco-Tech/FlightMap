@@ -2,6 +2,7 @@ import './mobile.css';
 import { FlightPlanManager, type RoutePreset } from './telemetry/FlightPlan';
 import { UnitManager, type UnitSystem } from './telemetry/UnitManager';
 import { AviationMath } from './telemetry/AviationMath';
+import { AirportDatabase } from './telemetry/AirportDatabase';
 
 type ConnectionState = 'laptop_connected' | 'relay_connected' | 'connecting' | 'offline';
 
@@ -62,6 +63,24 @@ class MobileController {
   private batteryCharging: boolean | null = null;
   private lastTelemetrySentAt: number = 0;
 
+  // Compass rose (magnetometer heading with GPS-track fallback)
+  private compassMagHeading: number | null = null;
+  private compassGpsHeading: number | null = null;
+  private lastCompassRender: number = 0;
+
+  // Airport search (custom route inputs)
+  private airportSearchReady: boolean = false;
+  private airportSearchLoading: boolean = false;
+  private suggestDebounce: number | null = null;
+  private suggestTarget: 'from' | 'to' | null = null;
+
+  // Haptic + audio cues
+  private cuesEnabled: boolean = true;
+  private audioCtx: AudioContext | null = null;
+  private hadGpsFix: boolean = false;
+  private hadFirstAck: boolean = false;
+  private pendingRouteCue: { key: string; at: number } | null = null;
+
   constructor() {
     this.targetHost = this.resolveTargetHost();
     this.render();
@@ -73,6 +92,8 @@ class MobileController {
     });
     this.checkSecureContext();
     this.initBatterySaver();
+    this.initCues();
+    this.initCompass();
   }
 
   private resolveTargetHost(): string {
@@ -184,6 +205,252 @@ class MobileController {
       } else {
         statusEl.textContent = 'Broadcasting at full rate.';
       }
+    }
+  }
+
+  // --- Compass Rose (magnetometer with GPS-track fallback) ---
+
+  private initCompass(): void {
+    const handler = (e: DeviceOrientationEvent) => this.handleCompassOrientation(e);
+    // Android/Chrome: the absolute event carries a true compass heading.
+    if ('ondeviceorientationabsolute' in window) {
+      window.addEventListener('deviceorientationabsolute', handler as EventListener);
+    }
+    // iOS: relative event with webkitCompassHeading (permission gated).
+    window.addEventListener('deviceorientation', handler);
+    document.getElementById('compass-card')?.addEventListener('click', () => {
+      void this.enableCompassSensors();
+    });
+  }
+
+  private async enableCompassSensors(): Promise<void> {
+    const DOE = (window as any).DeviceOrientationEvent;
+    if (DOE && typeof DOE.requestPermission === 'function') {
+      try {
+        const state = await DOE.requestPermission();
+        if (state !== 'granted') return;
+      } catch {
+        return;
+      }
+    }
+    // Listeners are already subscribed — force a refresh of the readout.
+    this.lastCompassRender = 0;
+    this.renderCompass();
+  }
+
+  private handleCompassOrientation(e: DeviceOrientationEvent): void {
+    const webkitHeading = (e as any).webkitCompassHeading;
+    if (typeof webkitHeading === 'number' && !Number.isNaN(webkitHeading)) {
+      this.compassMagHeading = (webkitHeading + 360) % 360; // iOS true compass heading
+    } else if (e.absolute && typeof e.alpha === 'number') {
+      this.compassMagHeading = (360 - e.alpha) % 360; // Android absolute alpha
+    } else {
+      return; // relative-only event without compass info
+    }
+    this.renderCompass();
+  }
+
+  private renderCompass(): void {
+    const now = performance.now();
+    if (now - this.lastCompassRender < 80) return; // throttle DOM to ~12 Hz
+    this.lastCompassRender = now;
+
+    const setText = (id: string, text: string) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+
+    const heading = this.compassMagHeading ?? this.compassGpsHeading;
+    const needle = document.getElementById('compass-needle');
+
+    if (heading === null) {
+      setText('compass-deg', '--°');
+      setText('compass-cardinal', 'NO SIGNAL');
+      setText('compass-source', '—');
+      setText('compass-hint', 'TAP TO ENABLE SENSORS · OR START GPS');
+      return;
+    }
+
+    const h = ((heading % 360) + 360) % 360;
+    if (needle) needle.style.transform = `rotate(${h.toFixed(1)}deg)`;
+    setText('compass-deg', `${Math.round(h)}°`);
+    const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+    setText('compass-cardinal', dirs[Math.round(h / 45) % 8]);
+
+    if (this.compassMagHeading !== null) {
+      setText('compass-source', 'MAG');
+      setText('compass-hint', 'HOLD FLAT · 3D MAGNETOMETER');
+    } else {
+      setText('compass-source', 'GPS');
+      setText('compass-hint', 'GPS TRACK — MAGNETOMETER UNAVAILABLE');
+    }
+  }
+
+  // --- Airport Search (city / airport name / IATA for custom routes) ---
+
+  private async ensureAirportSearch(): Promise<void> {
+    if (this.airportSearchReady || this.airportSearchLoading) return;
+    this.airportSearchLoading = true;
+    try {
+      await AirportDatabase.getInstance().load();
+      this.airportSearchReady = true;
+    } catch (e) {
+      console.warn('[Mobile] Airport search data unavailable:', e);
+    } finally {
+      this.airportSearchLoading = false;
+    }
+  }
+
+  private handleAirportSearchInput(field: 'from' | 'to'): void {
+    this.suggestTarget = field;
+    const inputId = field === 'from' ? 'remote-input-from' : 'remote-input-to';
+    const input = document.getElementById(inputId) as HTMLInputElement | null;
+    if (!input) return;
+    void this.ensureAirportSearch();
+    if (this.suggestDebounce !== null) window.clearTimeout(this.suggestDebounce);
+    this.suggestDebounce = window.setTimeout(() => {
+      this.suggestDebounce = null;
+      void this.runAirportSearch(field, input.value);
+    }, 180);
+  }
+
+  private closeSuggestions(): void {
+    const box = document.getElementById('fp-suggest');
+    if (box) {
+      box.classList.remove('open');
+      box.innerHTML = '';
+    }
+    this.suggestTarget = null;
+  }
+
+  private async runAirportSearch(field: 'from' | 'to', query: string): Promise<void> {
+    const box = document.getElementById('fp-suggest');
+    if (!box || this.suggestTarget !== field) return;
+
+    const q = query.trim();
+    if (q.length < 2) {
+      this.closeSuggestions();
+      return;
+    }
+
+    await this.ensureAirportSearch();
+    if (!this.airportSearchReady || this.suggestTarget !== field) return;
+
+    const results = AirportDatabase.getInstance().search(q, 6);
+    if (!results.length) {
+      this.closeSuggestions();
+      return;
+    }
+
+    box.innerHTML = results
+      .map(
+        (a) => `
+      <button type="button" class="fp-suggest-item" data-iata="${a.iata}">
+        <span class="fp-suggest-iata">${a.iata}</span>
+        <span class="fp-suggest-text">
+          <span class="fp-suggest-name">${a.name}</span>
+          <span class="fp-suggest-sub">${a.city}${a.country ? ' · ' + a.country : ''}</span>
+        </span>
+      </button>`
+      )
+      .join('');
+    box.classList.add('open');
+
+    box.querySelectorAll('.fp-suggest-item').forEach((item) => {
+      // Keep the input focused through the tap (prevents the mobile blur race).
+      item.addEventListener('pointerdown', (e) => e.preventDefault());
+      item.addEventListener('click', () => {
+        const iata = (item as HTMLElement).dataset.iata || '';
+        const pickedField = this.suggestTarget;
+        if (!iata || !pickedField) return;
+        const input = document.getElementById(
+          pickedField === 'from' ? 'remote-input-from' : 'remote-input-to'
+        ) as HTMLInputElement | null;
+        if (input) input.value = iata;
+        this.closeSuggestions();
+        // Auto-advance: after picking origin, jump to an empty destination field.
+        if (pickedField === 'from') {
+          const toInput = document.getElementById('remote-input-to') as HTMLInputElement | null;
+          if (toInput && !toInput.value.trim()) toInput.focus();
+        }
+      });
+    });
+  }
+
+  // --- Haptic + audio cues ---
+
+  private initCues(): void {
+    try {
+      this.cuesEnabled = localStorage.getItem('flightmap_cues') !== '0';
+    } catch {}
+    this.renderCuesButton();
+  }
+
+  private renderCuesButton(): void {
+    const btn = document.getElementById('btn-cues');
+    if (!btn) return;
+    btn.textContent = this.cuesEnabled ? '🔔 Cues: On' : '🔕 Cues: Off';
+    btn.style.opacity = this.cuesEnabled ? '1' : '0.55';
+  }
+
+  /** Lazily create/resume the WebAudio context (must be called from a user gesture). */
+  private initAudio(): void {
+    try {
+      if (!this.audioCtx) {
+        const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+        if (Ctx) this.audioCtx = new Ctx();
+      }
+      this.audioCtx?.resume?.().catch(() => {});
+    } catch {}
+  }
+
+  private beep(freq: number, durMs: number, delay = 0, volume = 0.12): void {
+    const ctx = this.audioCtx;
+    if (!ctx) return;
+    try {
+      const t0 = ctx.currentTime + delay;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(volume, t0 + 0.015);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + durMs / 1000);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(t0);
+      osc.stop(t0 + durMs / 1000 + 0.05);
+    } catch {}
+  }
+
+  private vibrate(pattern: number | number[]): void {
+    try {
+      (navigator as any).vibrate?.(pattern);
+    } catch {}
+  }
+
+  /** Distinct haptic + audio confirmation patterns for phone-side events. */
+  private cue(kind: 'gps-lock' | 'ack' | 'route' | 'offline'): void {
+    if (!this.cuesEnabled) return;
+    switch (kind) {
+      case 'gps-lock': // satellite lock acquired
+        this.vibrate([40, 70, 40]);
+        this.beep(880, 90);
+        this.beep(1320, 110, 0.1);
+        break;
+      case 'ack': // laptop confirmed receipt of the first fix
+        this.vibrate(25);
+        this.beep(660, 55);
+        break;
+      case 'route': // laptop activated the route we sent
+        this.vibrate([25, 50, 25]);
+        this.beep(780, 70);
+        this.beep(1040, 80, 0.09);
+        break;
+      case 'offline': // laptop link lost while transmitting
+        this.vibrate(140);
+        this.beep(240, 280, 0, 0.1);
+        break;
     }
   }
 
@@ -307,6 +574,7 @@ class MobileController {
           </p>
           <div style="display: flex; gap: 8px; align-items: center;">
             <button class="test-gps-btn" id="btn-test-gps">🧪 Test GPS Simulator</button>
+            <button class="test-gps-btn" id="btn-cues" title="Haptic + audio feedback on GPS lock, laptop ACK and route sync">🔔 Cues: On</button>
           </div>
           <div class="transmission-counter" id="tx-counter">Packets Sent to Laptop: 0</div>
         </div>
@@ -428,6 +696,31 @@ class MobileController {
           </div>
         </div>
 
+        <!-- Compass Rose (magnetometer heading, GPS-track fallback) -->
+        <div class="compass-card" id="compass-card" title="Tap to enable motion sensors">
+          <div class="compass-header">
+            <span class="compass-title">COMPASS ROSE</span>
+            <span class="compass-source" id="compass-source">—</span>
+          </div>
+          <div class="compass-body">
+            <div class="compass-dial">
+              <span class="cp-label cp-n">N</span>
+              <span class="cp-label cp-e">E</span>
+              <span class="cp-label cp-s">S</span>
+              <span class="cp-label cp-w">W</span>
+              <div class="compass-needle" id="compass-needle">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="#00e5ff"><path d="M12 2 L17.5 21 L12 16.8 L6.5 21 Z"/></svg>
+              </div>
+              <span class="compass-hub"></span>
+            </div>
+            <div class="compass-readout">
+              <span class="compass-deg" id="compass-deg">--°</span>
+              <span class="compass-cardinal" id="compass-cardinal">NO SIGNAL</span>
+              <span class="compass-hint" id="compass-hint">TAP TO ENABLE SENSORS · OR START GPS</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Remote Camera Switcher -->
         <div class="remote-cam-card">
           <div class="remote-cam-title">REMOTE LAPTOP CAMERA VIEW</div>
@@ -495,6 +788,9 @@ class MobileController {
                 <input type="text" class="remote-fp-input" id="remote-input-to" placeholder="OTP" value="OTP" maxlength="4" autocomplete="off" spellcheck="false" />
               </div>
             </div>
+
+            <!-- Airport search suggestions (city / airport name / IATA) -->
+            <div class="fp-suggest" id="fp-suggest"></div>
 
             <div class="remote-fp-actions-row">
               <button class="btn-remote-fav" id="btn-mobile-save-fav" title="Save to Favorites">⭐ Save Fav</button>
@@ -568,11 +864,17 @@ class MobileController {
       };
 
       this.ws.onclose = () => {
+        const wasConnected = this.isWsConnected;
         this.isWsConnected = false;
         this.isLaptopOnline = false;
         this.stopHeartbeat();
         this.updateHandshakeUI('offline', `Disconnected from ${cleanHost}`);
         this.updateTransmitCounter(false);
+
+        // Distinct low buzz when the laptop link drops mid-transmission.
+        if (wasConnected && (this.isTransmitting || this.isSimulating)) {
+          this.cue('offline');
+        }
 
         // Auto-reconnect after 3.5s
         this.reconnectTimer = window.setTimeout(() => this.initWebSocket(), 3500);
@@ -617,6 +919,11 @@ class MobileController {
       if (msg.laptopOnline) this.isLaptopOnline = true;
       this.updateHandshakeStats(true); // pulse ACK badge
       this.updateTransmitCounter(true);
+      // First confirmed handshake of a session — short haptic tick.
+      if (!this.hadFirstAck && (this.isTransmitting || this.isSimulating)) {
+        this.hadFirstAck = true;
+        this.cue('ack');
+      }
     }
 
     if (msg.type === 'camera_ack' || msg.type === 'camera_active') {
@@ -632,6 +939,12 @@ class MobileController {
         }
         this.renderMobilePresets();
         this.updateLiveFlightCard(msg);
+        // Confirmation cue when the laptop activates a route we just sent.
+        const key = `${msg.from.toUpperCase()}-${msg.to.toUpperCase()}`;
+        if (this.pendingRouteCue && this.pendingRouteCue.key === key && Date.now() - this.pendingRouteCue.at < 20000) {
+          this.pendingRouteCue = null;
+          this.cue('route');
+        }
       }
     }
 
@@ -970,6 +1283,17 @@ class MobileController {
       });
     });
 
+    // Haptic + audio cue toggle
+    document.getElementById('btn-cues')?.addEventListener('click', () => {
+      this.cuesEnabled = !this.cuesEnabled;
+      try {
+        localStorage.setItem('flightmap_cues', this.cuesEnabled ? '1' : '0');
+      } catch {}
+      this.initAudio();
+      if (this.cuesEnabled) this.cue('ack'); // instant confirmation when re-enabling
+      this.renderCuesButton();
+    });
+
     // Transmit button
     const btnTransmit = document.getElementById('btn-toggle-transmit');
     btnTransmit?.addEventListener('click', () => {
@@ -1063,15 +1387,19 @@ class MobileController {
       }
     });
 
-    // Auto-uppercase IATA inputs on mobile typing
+    // Auto-uppercase IATA inputs + airport search suggestions
     const fromInput = document.getElementById('remote-input-from') as HTMLInputElement | null;
     const toInput = document.getElementById('remote-input-to') as HTMLInputElement | null;
     fromInput?.addEventListener('input', () => {
       fromInput.value = fromInput.value.toUpperCase();
+      this.handleAirportSearchInput('from');
     });
     toInput?.addEventListener('input', () => {
       toInput.value = toInput.value.toUpperCase();
+      this.handleAirportSearchInput('to');
     });
+    fromInput?.addEventListener('focus', () => this.handleAirportSearchInput('from'));
+    toInput?.addEventListener('focus', () => this.handleAirportSearchInput('to'));
 
     // Send custom route button
     document.getElementById('btn-mobile-send-route')?.addEventListener('click', () => {
@@ -1145,6 +1473,9 @@ class MobileController {
     const t = to.trim().toUpperCase();
     this.activeRouteKey = `${f}-${t}`;
     this.renderMobilePresets();
+
+    // Arm the confirmation cue — fires when the laptop echoes this route back.
+    this.pendingRouteCue = { key: `${f}-${t}`, at: Date.now() };
 
     const disp = document.getElementById('disp-active-route');
     if (disp) {
@@ -1289,6 +1620,10 @@ class MobileController {
       }
     } catch (e) {}
 
+    this.initAudio();
+    this.hadGpsFix = false;
+    this.hadFirstAck = false;
+
     this.isTransmitting = true;
     const btn = document.getElementById('btn-toggle-transmit');
     const lbl = document.getElementById('transmit-label');
@@ -1341,6 +1676,18 @@ class MobileController {
     this.lastSpeed = c.speed !== null ? Math.round((c.speed * 3.6) / 1.852) : 485;
     this.lastHeading = c.heading !== null ? Math.round(c.heading) : 0;
     this.lastAccuracy = Math.round(c.accuracy || 5);
+
+    // First fix of a session — satellite lock acquired cue.
+    if (!this.hadGpsFix) {
+      this.hadGpsFix = true;
+      this.cue('gps-lock');
+    }
+
+    // Compass fallback: use GPS track when no magnetometer heading is available.
+    if (this.compassMagHeading === null && typeof c.heading === 'number' && typeof c.speed === 'number' && c.speed > 3) {
+      this.compassGpsHeading = Math.round(c.heading);
+      this.renderCompass();
+    }
 
     this.updateMobileReadouts(fixType);
     this.broadcastTelemetry();
@@ -1400,6 +1747,11 @@ class MobileController {
       this.stopTransmitting();
     }
 
+    this.initAudio();
+    this.hadGpsFix = true; // simulator "locks" instantly
+    this.hadFirstAck = false;
+    this.cue('gps-lock');
+
     this.isSimulating = true;
     const btn = document.getElementById('btn-test-gps');
     if (btn) {
@@ -1418,6 +1770,12 @@ class MobileController {
       this.lastSpeed = this.simSpeed;
       this.lastHeading = this.simHdg;
       this.lastAccuracy = 2.5;
+
+      // Compass fallback: simulator provides a GPS track heading.
+      if (this.compassMagHeading === null) {
+        this.compassGpsHeading = this.simHdg;
+        this.renderCompass();
+      }
 
       this.updateMobileReadouts('Simulator Active (Cruise)');
       this.broadcastTelemetry();
