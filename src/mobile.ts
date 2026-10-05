@@ -52,6 +52,10 @@ class MobileController {
   private remoteSimSpeed: number = 10;
   private remoteSimPaused: boolean = false;
 
+  // Live flight status strip (mirrored from the laptop moving map)
+  private liveDestTz: string = '';
+  private liveProgressReceived: boolean = false;
+
   constructor() {
     this.targetHost = this.resolveTargetHost();
     this.render();
@@ -219,6 +223,40 @@ class MobileController {
             <button class="test-gps-btn" id="btn-test-gps">🧪 Test GPS Simulator</button>
           </div>
           <div class="transmission-counter" id="tx-counter">Packets Sent to Laptop: 0</div>
+        </div>
+
+        <!-- Live Flight Status (mirrored from the laptop moving map over WebSocket) -->
+        <div class="live-flight-card" id="live-flight-card">
+          <div class="lf-header">
+            <span class="lf-title">LIVE FLIGHT STATUS</span>
+            <span class="lf-source" id="lf-source">WAITING</span>
+          </div>
+          <div class="lf-route" id="lf-route">Waiting for laptop…</div>
+          <div class="lf-flight-info" id="lf-flight-info">Open the map on your laptop to sync the flight</div>
+          <div class="lf-progress-track">
+            <div class="lf-progress-fill" id="lf-progress-fill" style="width: 0%;"></div>
+            <span class="lf-progress-plane" id="lf-progress-plane" style="left: 0%;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#00e5ff"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+            </span>
+          </div>
+          <div class="lf-metrics">
+            <div class="lf-metric">
+              <span class="lf-k">FLOWN</span>
+              <span class="lf-v" id="lf-flown">--</span>
+            </div>
+            <div class="lf-metric">
+              <span class="lf-k">REMAINING</span>
+              <span class="lf-v" id="lf-remaining">--</span>
+            </div>
+            <div class="lf-metric">
+              <span class="lf-k">ETE</span>
+              <span class="lf-v" id="lf-ete">--:--</span>
+            </div>
+            <div class="lf-metric">
+              <span class="lf-k">ETA</span>
+              <span class="lf-v" id="lf-eta">--:--</span>
+            </div>
+          </div>
         </div>
 
         <!-- Measurement Unit Selector -->
@@ -493,6 +531,7 @@ class MobileController {
           disp.textContent = `Active: ${msg.flightNumber || msg.from + ' → ' + msg.to} (${msg.from} → ${msg.to})`;
         }
         this.renderMobilePresets();
+        this.updateLiveFlightCard(msg);
       }
     }
 
@@ -518,6 +557,80 @@ class MobileController {
       if (typeof msg.speed === 'number') {
         this.setActiveSimSpeedPill(msg.speed);
       }
+    }
+
+    if (msg.type === 'flight_progress') {
+      this.updateLiveFlightProgress(msg);
+    }
+  }
+
+  /**
+   * Route header of the live flight strip (fills in when the laptop broadcasts
+   * its active flight plan).
+   */
+  private updateLiveFlightCard(msg: any): void {
+    if (msg.from && msg.to) {
+      const routeEl = document.getElementById('lf-route');
+      if (routeEl) routeEl.textContent = `${msg.from} → ${msg.to}`;
+    }
+
+    const info = [msg.flightNumber, msg.airline].filter(Boolean).join(' • ');
+    const infoEl = document.getElementById('lf-flight-info');
+    if (infoEl && info) infoEl.textContent = info;
+
+    if (msg.destTz) {
+      this.liveDestTz = msg.destTz;
+    }
+  }
+
+  /**
+   * Live progress snapshot pushed by the laptop every ~2s: progress bar,
+   * distance flown/remaining, ETE and ETA (destination local time when known).
+   */
+  private updateLiveFlightProgress(msg: any): void {
+    const pct = Math.max(0, Math.min(100, (msg.progressFraction || 0) * 100));
+    const fill = document.getElementById('lf-progress-fill');
+    const plane = document.getElementById('lf-progress-plane');
+    if (fill) fill.style.width = `${pct.toFixed(1)}%`;
+    if (plane) plane.style.left = `${pct.toFixed(1)}%`;
+
+    const setText = (id: string, text: string) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+
+    setText('lf-flown', this.unitManager.formatDistance(msg.distanceTraveledNM || 0).displayStr);
+    setText('lf-remaining', this.unitManager.formatDistance(msg.distanceRemainingNM || 0).displayStr);
+    setText('lf-ete', AviationMath.formatDuration(msg.eteSeconds || 0));
+
+    // ETA in the destination's local time when the laptop shared its timezone
+    let etaStr = '--:--';
+    if (msg.eteSeconds > 0) {
+      const etaDate = new Date(Date.now() + msg.eteSeconds * 1000);
+      try {
+        etaStr = new Intl.DateTimeFormat('en-GB', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          ...(this.liveDestTz ? { timeZone: this.liveDestTz } : {})
+        }).format(etaDate);
+      } catch {
+        etaStr = `${String(etaDate.getHours()).padStart(2, '0')}:${String(etaDate.getMinutes()).padStart(2, '0')}`;
+      }
+    }
+    setText('lf-eta', etaStr);
+
+    const sourceLabels: Record<string, string> = {
+      simulation: 'SIM',
+      mobile_gps: 'PHONE GPS',
+      browser_gps: 'LAPTOP GPS',
+      serial_nmea: 'USB GPS'
+    };
+    setText('lf-source', sourceLabels[msg.source] || 'LIVE');
+
+    if (!this.liveProgressReceived) {
+      this.liveProgressReceived = true;
+      document.getElementById('live-flight-card')?.classList.add('live-synced');
     }
   }
 

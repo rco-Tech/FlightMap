@@ -147,6 +147,8 @@ When sitting by an airplane window:
 5. Tap **Start GPS Broadcast** and place the phone on the window sill.
 6. Your laptop will instantly receive satellite telemetry and track your aircraft in real-time!
 
+The phone page also mirrors the flight's live status — route progress bar, distance flown/remaining, ETE and ETA (in destination local time) — refreshed every couple of seconds, and it keeps updating even when the laptop's browser window is in the background.
+
 ---
 
 ## 🛠️ Tech Stack & Architecture

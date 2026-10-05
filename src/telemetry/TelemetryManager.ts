@@ -94,6 +94,7 @@ export class TelemetryManager {
           airline: plan.airline,
           aircraft: plan.aircraftType,
           totalDistanceNM: plan.totalDistanceNM,
+          destTz: plan.destination?.tz,
           timestamp: Date.now()
         }));
       } catch (e) {}
@@ -123,6 +124,30 @@ export class TelemetryManager {
         }));
       } catch (e) {}
     }
+  }
+
+  /**
+   * Periodic snapshot of the flight's progress, mirrored to paired phones so
+   * the mobile page can show a live flight status strip (progress bar,
+   * distance flown/remaining, ETE and ETA). Sent every 2 seconds.
+   */
+  public broadcastFlightProgress(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+    const plan = this.flightPlanManager.getActivePlan();
+    if (!plan) return;
+    try {
+      this.ws.send(JSON.stringify({
+        type: 'flight_progress',
+        progressFraction: this.state.progressFraction,
+        distanceTraveledNM: this.state.distanceTraveledNM,
+        distanceRemainingNM: this.state.distanceRemainingNM,
+        eteSeconds: this.state.eteSeconds,
+        groundSpeed: this.state.groundSpeed,
+        altitude: this.state.altitude,
+        source: this.state.source,
+        timestamp: Date.now()
+      }));
+    } catch (e) {}
   }
 
   public onPhoneStatus(callback: (connected: boolean, active: boolean) => void): () => void {
@@ -201,6 +226,10 @@ export class TelemetryManager {
     this.relayEnabled = true;
     this.initWebSocket();
     this.startSimulationLoop();
+
+    // Mirror the live flight state to paired phones every 2 seconds
+    // (drives the mobile "Live Flight" status strip).
+    window.setInterval(() => this.broadcastFlightProgress(), 2000);
   }
 
   public static getInstance(): TelemetryManager {
@@ -391,6 +420,14 @@ export class TelemetryManager {
               this.phoneConnected = Boolean(msg.phoneOnline);
               if (this.phoneConnected) {
                 this.broadcastSimState();
+                // Re-send flight context so a freshly paired phone immediately
+                // shows the live flight strip, even if it connected after the
+                // plan was activated.
+                const activePlan = this.flightPlanManager.getActivePlan();
+                if (activePlan) {
+                  this.broadcastFlightPlan(activePlan);
+                }
+                this.broadcastFlightProgress();
               }
               for (const cb of this.phoneListeners) {
                 cb(this.phoneConnected, this.activeSource === 'mobile_gps');
@@ -646,6 +683,24 @@ export class TelemetryManager {
     };
 
     this.simTimer = requestAnimationFrame(tick);
+
+    // Background-tab fallback: browsers fully suspend requestAnimationFrame
+    // when the tab is hidden, which would otherwise freeze simulation progress
+    // (and the phone's live flight strip) whenever the laptop window is in the
+    // background. Drive the sim from a low-frequency timer while hidden.
+    window.setInterval(() => {
+      const now = performance.now();
+      if (document.hidden) {
+        const dt = (now - this.lastSimTimestamp) / 1000;
+        this.lastSimTimestamp = now;
+        if (this.activeSource === 'simulation' && !this.simIsPaused) {
+          this.updateSimulationStep(dt);
+        }
+      } else {
+        // Keep dt sane for the next rAF frame after a visibility transition.
+        this.lastSimTimestamp = now;
+      }
+    }, 1000);
   }
 
   private updateSimulationStep(dt: number): void {
