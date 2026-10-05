@@ -666,6 +666,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 6px;
   width: 100%;
 }
 
@@ -674,6 +675,12 @@ html, body {
   font-weight: 700;
   letter-spacing: 0.8px;
   color: var(--text-muted);
+  /* Clamp long labels to 2 lines so the bottom bar height stays stable on narrow windows */
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-mini-badge {
@@ -686,6 +693,8 @@ html, body {
   padding: 1px 5px;
   border-radius: 4px;
   letter-spacing: 0.4px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .unit-system-tag {
@@ -699,6 +708,8 @@ html, body {
   border-radius: 4px;
   letter-spacing: 0.5px;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .unit-system-tag:hover {
@@ -1467,7 +1478,7 @@ html, body {
 
 .about-specs-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: 10px;
 }
 
@@ -1639,5 +1650,106 @@ html, body {
   }
   .about-specs-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* --- STABLE BOTTOM CONSOLE SIZING ---
+   Placed after the base rules on purpose: media queries do not add specificity,
+   so these overrides must come last in source order to win the cascade.
+   Goal: the bottom telemetry strip keeps a near-constant physical height as the
+   window is resized instead of ballooning as labels wrap on narrow windows. */
+
+@media (min-width: 901px) and (max-width: 1400px) {
+  .hud-bottom-bar {
+    gap: 12px;
+    padding: 12px 20px;
+  }
+
+  .telemetry-card {
+    padding: 7px 12px;
+  }
+
+  .telemetry-card .big-val {
+    font-size: 22px;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1180px) {
+  .hud-bottom-bar {
+    gap: 10px;
+    padding: 10px 16px;
+  }
+
+  .telemetry-card {
+    padding: 6px 10px;
+    border-radius: 10px;
+  }
+
+  .telemetry-card .label {
+    font-size: 9px;
+    letter-spacing: 0.6px;
+  }
+
+  .telemetry-card .big-val {
+    font-size: 19px;
+  }
+
+  .telemetry-card .unit {
+    font-size: 10px;
+  }
+
+  .telemetry-card .sub-val {
+    font-size: 10px;
+  }
+
+  .card-mini-badge,
+  .unit-system-tag {
+    font-size: 8px;
+    padding: 1px 4px;
+  }
+
+  .coord-card {
+    padding: 5px 9px;
+  }
+
+  .coord-num {
+    font-size: 12px;
+    letter-spacing: 0.4px;
+  }
+
+  .coord-axis {
+    font-size: 9px;
+    min-width: 22px;
+  }
+
+  .coord-cardinal {
+    font-size: 10px;
+    padding: 0 4px;
+    min-width: 16px;
+  }
+
+  .clocks-card {
+    padding: 5px 8px;
+    gap: 8px;
+  }
+
+  .clock-iata {
+    font-size: 10px;
+  }
+
+  .clock-val {
+    font-size: 12px;
+  }
+
+  .solar-section {
+    padding-left: 6px;
+  }
+
+  .solar-phase-name {
+    font-size: 11px;
+  }
+
+  .solar-elev-badge {
+    font-size: 9px;
   }
 }
