@@ -1,5 +1,6 @@
 import './start.css';
 import { AppMode, getMode, setMode, isStandaloneDisplay } from './mode';
+import { APP_VERSION, APP_RELEASE_STRING } from './version';
 
 interface ModeOption {
   id: AppMode;
@@ -46,6 +47,10 @@ function render(): void {
         <div class="start-eyebrow">rTech Systems</div>
         <h1 class="start-title">FLIGHTMAP</h1>
         <p class="start-subtitle">Offline 3D In-Flight Moving Map • Select operating mode</p>
+        <button class="version-pill" id="version-pill" type="button" title="Check for updates">
+          <span class="version-dot"></span>${APP_RELEASE_STRING}
+        </button>
+        <div class="version-hint">Tap to check for updates</div>
       </header>
 
       <div class="mode-grid" id="mode-grid"></div>
@@ -73,6 +78,60 @@ function render(): void {
     card.addEventListener('click', () => launch(option));
     grid.appendChild(card);
   }
+
+  initVersionPill();
+}
+
+/**
+ * Release badge — shows the same release string as the map's About dialog so
+ * the latest deployed version can be double-checked right from the PWA start
+ * screen. Tapping forces a service-worker update check and refreshes.
+ */
+function initVersionPill(): void {
+  const pill = document.getElementById('version-pill') as HTMLButtonElement | null;
+  if (!pill) return;
+
+  const restore = () => {
+    pill.classList.remove('checking', 'uptodate');
+    pill.innerHTML = `<span class="version-dot"></span>${APP_RELEASE_STRING}`;
+  };
+
+  pill.addEventListener('click', async () => {
+    if (pill.classList.contains('checking')) return;
+    pill.classList.add('checking');
+    pill.textContent = 'CHECKING FOR UPDATES…';
+
+    try {
+      const reg = 'serviceWorker' in navigator ? await navigator.serviceWorker.getRegistration() : undefined;
+      if (!reg) {
+        // Dev / SW disabled (localhost guard): plain refresh.
+        pill.textContent = 'REFRESHING…';
+        window.setTimeout(() => window.location.reload(), 500);
+        return;
+      }
+
+      let updateFound = false;
+      reg.addEventListener('updatefound', () => {
+        updateFound = true;
+      });
+      await reg.update();
+
+      if (updateFound || reg.installing || reg.waiting) {
+        // New worker installs with skipWaiting + clientsClaim; the SW layer
+        // auto-reloads on controllerchange — nudge it along as a fallback.
+        pill.textContent = 'UPDATE FOUND — REFRESHING…';
+        window.setTimeout(() => window.location.reload(), 1800);
+        return;
+      }
+
+      pill.classList.remove('checking');
+      pill.classList.add('uptodate');
+      pill.textContent = `✓ UP TO DATE — v${APP_VERSION}`;
+      window.setTimeout(restore, 2400);
+    } catch {
+      restore();
+    }
+  });
 }
 
 render();

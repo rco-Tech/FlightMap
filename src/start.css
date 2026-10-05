@@ -157,3 +157,65 @@ body {
   color: var(--accent-cyan-dim);
   text-decoration: none;
 }
+
+/* --- RELEASE VERSION BADGE (matches the map's About dialog release string) --- */
+.version-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 7px 14px;
+  background: var(--panel);
+  border: 1px solid rgba(0, 229, 255, 0.28);
+  border-radius: 999px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', ui-monospace, 'SF Mono', Consolas, monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, color 0.14s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.version-pill:hover {
+  border-color: rgba(0, 229, 255, 0.55);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.15);
+}
+
+.version-pill:active {
+  transform: scale(0.98);
+}
+
+.version-pill.checking {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.25);
+}
+
+.version-pill.uptodate {
+  border-color: rgba(74, 222, 128, 0.55);
+  color: #86efac;
+  box-shadow: 0 0 18px rgba(74, 222, 128, 0.15);
+}
+
+.version-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+  flex-shrink: 0;
+  animation: version-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes version-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.version-hint {
+  margin-top: 6px;
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  color: rgba(127, 147, 173, 0.85);
+}
