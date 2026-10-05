@@ -112,6 +112,8 @@ The launch screen (`start.html`, the manifest `start_url`) offers two modes:
 1. **🌐 Moving Map** — the device renders the full 3D moving map itself using its own satellite GNSS. No laptop or network required; the screen is kept awake automatically.
 2. **📡 GPS Relay** — the device streams its GNSS + gyroscope to a laptop running FlightMap (the original transmitter workflow).
 
+The launch screen also carries a live update check: it compares the running release against the deployed `version.json` and shows a green "latest version" state — or an amber **UPDATE AVAILABLE** bubble with a one-tap **⚡ Force update** that clears the service-worker cache and pulls the newest deployed build. Newly deployed workers also auto-reload the start screen once they take over, so updates apply without cache fighting.
+
 ### Installing
 - **Android (Chrome/Edge)**: Open [FlightMap](https://rco-tech.github.io/FlightMap/) → menu (⋮) → **Install app / Add to Home screen** (the browser native prompt).
 - **iOS (Safari)**: Open [FlightMap](https://rco-tech.github.io/FlightMap/) → tap **Share** → **Add to Home Screen**.

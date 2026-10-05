@@ -1,3 +1,4 @@
+import fs from 'fs';
 import { resolve } from 'path';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -33,6 +34,24 @@ export default defineConfig(() => {
       }
     },
     plugins: [
+      {
+        // Emit dist/version.json at build time so clients can check the latest
+        // deployed version without going through the service worker cache.
+        name: 'emit-version-json',
+        apply: 'build',
+        closeBundle() {
+          try {
+            const pkg = JSON.parse(fs.readFileSync(resolve(__dirname, 'package.json'), 'utf8'));
+            const out = resolve(__dirname, 'dist', 'version.json');
+            fs.writeFileSync(
+              out,
+              `${JSON.stringify({ version: pkg.version, builtAt: new Date().toISOString() }, null, 2)}\n`
+            );
+          } catch (e) {
+            console.warn('[version.json] emit failed:', e);
+          }
+        }
+      },
       VitePWA({
         registerType: 'autoUpdate',
         injectRegister: 'auto',
